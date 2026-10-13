@@ -7,6 +7,7 @@ const wordsScreen = document.querySelector('.words-screen');
 const changeScreen = document.querySelector('.change-screen');
 const lettersScreen = document.querySelector('.letters-screen');
 const pairsScreen = document.querySelector('.pairs-screen');
+const oddScreen = document.querySelector('.odd-screen');
 const historyScreen = document.querySelector('.history-screen');
 const activeExerciseTitle = document.querySelector('#active-exercise-title');
 const equation = document.querySelector('.equation');
@@ -39,6 +40,7 @@ let pairsSequence = [];
 let selectedPairCards = [];
 let matchedPairs = 0;
 let pairsLocked = false;
+let oddRound = 0, oddMistakes = 0, oddSequence = [], oddHadMistake = false;
 let pairsPreview = false;
 let activeSession;
 let sessionWriteQueue = Promise.resolve();
@@ -92,8 +94,8 @@ function closeSession(status, completed, successful, mistakes) {
 
 function abandonActiveSession() {
   if (!activeSession) return;
-  const progress = activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
-  const errors = activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
+  const progress = activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
+  const errors = activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
   return closeSession('abandoned', progress, activeSession.successful, errors);
 }
 
@@ -181,7 +183,7 @@ function showHome() {
   window.clearTimeout(advanceTimer);
   abandonActiveSession();
   activeExerciseTitle.hidden = true;
-  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
+  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
 }
 
 function startExercise() {
@@ -566,10 +568,17 @@ function finishPairsExercise() {
 }
 
 document.querySelector('[data-exercise="pairs"]')?.addEventListener('click', beginPairsExercise);
+const oddQuestions = [
+  ['🍎','🍐','🍌','🚗'], ['🐈','🐕','🐇','📘'], ['☕','🍽️','🥄','⚽'], ['🌷','🌹','🌻','⌚'], ['🧤','🧦','🧢','🚲'], ['🥖','🧀','🍓','🔑'], ['📞','💻','📺','🥕'], ['🪥','🧼','🧴','🎈'], ['🚕','🚌','🚲','🍎'], ['🛏️','🪑','🛋️','☂️']
+].map(items => ({ items, answer: items[3] }));
+function beginOddExercise() { oddRound = 0; oddMistakes = 0; oddSequence = shuffle(oddQuestions); beginSession('Лишний предмет'); startOddRound(); }
+function startOddRound() { activeExercise = 'odd'; oddHadMistake = false; home.hidden = true; tip.hidden = true; result.hidden = true; oddScreen.hidden = false; activeExerciseTitle.textContent = 'Лишний предмет'; activeExerciseTitle.hidden = false; const q = oddSequence[oddRound]; document.querySelector('#odd-round').textContent = oddRound + 1; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-progress').style.width = `${oddRound * 10}%`; const list = document.querySelector('#odd-options'); list.innerHTML = ''; list.classList.remove('is-answered'); document.querySelector('#odd-feedback').textContent = ''; shuffle(q.items).forEach(item => { const b = document.createElement('button'); b.className = 'letter-option'; b.textContent = item; b.onclick = () => { if (item !== q.answer) { b.disabled = true; b.classList.add('is-wrong'); oddMistakes++; oddHadMistake = true; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-feedback').textContent = 'Неверно. Попробуйте ещё раз.'; updateActiveSession(oddRound, activeSession.successful, oddMistakes); return; } list.querySelectorAll('button').forEach(x => x.disabled = true); list.classList.add('is-answered'); b.classList.add('is-correct'); document.querySelector('#odd-feedback').textContent = 'Верно!'; updateActiveSession(oddRound + 1, activeSession.successful + (oddHadMistake ? 0 : 1), oddMistakes); advanceTimer = setTimeout(() => { oddRound++; oddRound === 10 ? finishOdd() : startOddRound(); }, 1300); }; list.append(b); }); }
+function finishOdd() { oddScreen.hidden = true; result.hidden = false; closeSession('completed', 10, activeSession.successful, oddMistakes); document.querySelector('#result-title').textContent = 'Упражнение пройдено!'; document.querySelector('#result-description').textContent = 'Вы нашли лишние предметы.'; document.querySelector('#result-correct-number').textContent = 10; document.querySelector('#result-mistakes-number').textContent = oddMistakes; }
+document.querySelector('[data-exercise="odd"]')?.addEventListener('click', beginOddExercise);
 document.querySelector('#pairs-ready')?.addEventListener('click', beginPairsSearch);
 document.querySelectorAll('[data-action="home"]').forEach(button => button.addEventListener('click', showHome));
 document.querySelector('[data-action="history"]')?.addEventListener('click', async () => { await abandonActiveSession(); showHistory(); });
-document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
+document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));

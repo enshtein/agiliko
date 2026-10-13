@@ -74,6 +74,9 @@
             <span class="card-copy"><span class="card-title">Найди пару</span></span>
             <span class="card-arrow" aria-hidden="true">→</span>
           </button>
+          <button class="exercise-card exercise-card--active" type="button" data-exercise="odd">
+            <span class="card-icon" aria-hidden="true">🧩</span><span class="card-copy"><span class="card-title">Лишний предмет</span></span><span class="card-arrow" aria-hidden="true">→</span>
+          </button>
         </div>
       </section>
 
@@ -183,6 +186,7 @@
           <div class="answer-feedback" id="pairs-feedback" role="status" aria-live="polite"></div>
         </div>
       </section>
+      <section class="odd-screen" aria-labelledby="odd-title" hidden><div class="words-topline"><button class="back-button" type="button" data-action="home">←</button><div class="progress-track"><span id="odd-progress"></span><b><span id="odd-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="odd-mistakes">0</span></div></div><div class="letters-area"><h1 id="odd-title">Какой предмет лишний?</h1><div class="letters-options" id="odd-options"></div><div class="answer-feedback" id="odd-feedback"></div></div></section>
 
       <section class="history-screen" aria-labelledby="history-title" hidden>
         <div class="history-topline">
