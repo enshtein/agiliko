@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f3ec" />
+    <meta name="description" content="Agiliko — мягкие упражнения для тренировки мозга." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Agiliko — упражнения для мозга</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Agiliko — главная">
+          <span class="brand-mark" aria-hidden="true">a</span>
+          <span>Agiliko</span>
+        </a>
+        <span class="active-exercise-title" id="active-exercise-title" hidden>Быстрый счёт</span>
+        <button class="profile-button" type="button" aria-label="Открыть профиль">
+          <span aria-hidden="true">Л</span>
+        </button>
+      </header>
+
+      <section class="exercise-section" aria-labelledby="exercise-title">
+        <div class="section-heading">
+          <h2 id="exercise-title">Упражнения</h2>
+        </div>
+
+        <div class="exercise-grid">
+          <button class="exercise-card exercise-card--active" type="button" data-exercise="fast-count">
+            <span class="card-icon icon-count" aria-hidden="true">
+              <svg viewBox="0 0 120 120" role="img">
+                <rect x="18" y="20" width="84" height="80" rx="20" fill="currentColor" opacity=".15"/>
+                <text x="35" y="67" fill="currentColor" font-size="38" font-family="Arial, sans-serif" font-weight="700">2</text>
+                <path d="M70 51h26M83 38v26" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+                <path d="M36 83h48" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="card-copy">
+              <span class="card-title">Быстрый счёт</span>
+              <span class="card-description">Простые примеры с вариантами ответов</span>
+            </span>
+            <span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--memory" type="button" data-exercise="memory">
+            <span class="card-icon icon-memory" aria-hidden="true">
+              <svg viewBox="0 0 120 120">
+                <path d="M60 20c-20 0-36 16-36 36 0 13 7 25 17 31v13h38V87c10-6 17-18 17-31 0-20-16-36-36-36Z" fill="currentColor" opacity=".15"/>
+                <path d="M46 88h28M49 101h22M50 55c0-6 4-10 10-10s10 4 10 10c0 7-10 8-10 16" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                <circle cx="60" cy="82" r="3.5" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="card-copy">
+              <span class="card-title">Запомни картинку</span>
+              <span class="card-description">Тренировка внимания и памяти</span>
+            </span>
+            <span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--words" type="button" data-exercise="words">
+            <span class="card-icon icon-words" aria-hidden="true">
+              <svg viewBox="0 0 120 120">
+                <rect x="20" y="25" width="80" height="70" rx="20" fill="currentColor" opacity=".15"/>
+                <path d="M40 49h40M40 64h28M40 79h34" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                <circle cx="89" cy="78" r="15" fill="#f6ca70"/>
+                <path d="m96 89 8 8" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="card-copy">
+              <span class="card-title">Слово за словом</span>
+              <span class="card-description">Игры со словами и значениями</span>
+            </span>
+            <span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--change" type="button" data-exercise="change">
+            <span class="card-icon" aria-hidden="true">💳</span>
+            <span class="card-copy">
+              <span class="card-title">Сдача в магазине</span>
+              <span class="card-description">Посчитайте, сколько рублей нужно вернуть</span>
+            </span>
+            <span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+
+      <p class="tip"><span aria-hidden="true">✦</span> Лучше понемногу, но регулярно</p>
+
+      <section class="game-screen" aria-labelledby="game-title" hidden>
+        <div class="game-topline">
+          <button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button>
+          <div class="progress-track"><span id="progress-bar"></span><b><span id="question-number">1</span> из 10</b></div>
+          <div class="mistakes-count">Ошибок: <span id="mistakes-number">0</span></div>
+        </div>
+
+        <div class="question-area">
+          <h1 id="game-title" class="equation" aria-live="polite"></h1>
+          <div class="answers" id="answers" aria-label="Варианты ответа"></div>
+          <div class="answer-feedback" id="answer-feedback" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="result-screen" aria-labelledby="result-title" hidden>
+        <div class="result-card">
+          <div class="result-icon" aria-hidden="true">★</div>
+          <h1 id="result-title"></h1>
+          <p class="result-description" id="result-description"></p>
+          <div class="result-stats">
+            <div class="result-stat"><strong id="result-correct-number"></strong><span>верных ответов</span></div>
+            <div class="result-stat"><strong id="result-mistakes-number"></strong><span>ошибок</span></div>
+          </div>
+          <div class="result-actions">
+            <button class="primary-action" type="button" data-action="restart">Пройти ещё раз</button>
+            <button class="secondary-action" type="button" data-action="home">К упражнениям</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="memory-screen" aria-labelledby="memory-title" hidden>
+        <div class="memory-topline">
+          <button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button>
+          <div class="progress-track"><span id="memory-progress"></span><b><span id="memory-round">1</span> из 10</b></div>
+          <div class="mistakes-count">Ошибок: <span id="memory-mistakes">0</span></div>
+        </div>
+        <div class="memory-area">
+          <h1 id="memory-title">Запомните эти картинки</h1>
+          <p class="memory-instruction">Запомните предметы и их порядок следования. Когда будете готовы — нажмите кнопку.</p>
+          <div class="memory-items" id="memory-items"></div>
+          <button class="primary-action memory-ready" id="memory-ready" type="button">Я запомнил(а)</button>
+          <div class="memory-question" id="memory-question" hidden>
+            <div class="memory-options" id="memory-options"></div>
+            <div class="answer-feedback" id="memory-feedback" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="words-screen" aria-labelledby="words-title" hidden>
+        <div class="words-topline">
+          <button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button>
+          <div class="progress-track"><span id="words-progress"></span><b><span id="words-round">1</span> из 10</b></div>
+          <div class="mistakes-count">Ошибок: <span id="words-mistakes">0</span></div>
+        </div>
+        <div class="words-area">
+          <h1 id="words-title">Назовите предмет</h1>
+          <div class="word-picture" id="word-picture"></div>
+          <div class="word-options" id="word-options"></div>
+          <div class="answer-feedback" id="words-feedback" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="change-screen" aria-labelledby="change-title" hidden>
+        <div class="words-topline">
+          <button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button>
+          <div class="progress-track"><span id="change-progress"></span><b><span id="change-round">1</span> из 10</b></div>
+          <div class="mistakes-count">Ошибок: <span id="change-mistakes">0</span></div>
+        </div>
+        <div class="change-area">
+          <h1 id="change-title">Сколько сдачи?</h1>
+          <div class="change-story" id="change-story"></div>
+          <div class="change-options" id="change-options"></div>
+          <div class="answer-feedback" id="change-feedback" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
