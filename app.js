@@ -6,6 +6,7 @@ const memoryScreen = document.querySelector('.memory-screen');
 const wordsScreen = document.querySelector('.words-screen');
 const changeScreen = document.querySelector('.change-screen');
 const lettersScreen = document.querySelector('.letters-screen');
+const guessWordScreen = document.querySelector('.guess-word-screen');
 const pairsScreen = document.querySelector('.pairs-screen');
 const oddScreen = document.querySelector('.odd-screen');
 const historyScreen = document.querySelector('.history-screen');
@@ -49,6 +50,11 @@ let memoryRoundHadMistake = false;
 let wordsRoundHadMistake = false;
 let changeRoundHadMistake = false;
 let lettersRoundHadMistake = false;
+let guessWordRound = 0;
+let guessWordMistakes = 0;
+let guessWordSequence = [];
+let guessWordMissingIndex = 0;
+let guessWordRoundHadMistake = false;
 let pairsRoundHadMistake = false;
 
 const historyDatabase = new Promise((resolve, reject) => {
@@ -94,15 +100,15 @@ function closeSession(status, completed, successful, mistakes) {
 
 function abandonActiveSession() {
   if (!activeSession) return;
-  const progress = activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
-  const errors = activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
+  const progress = activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'guess-word' ? guessWordRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
+  const errors = activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'guess-word' ? guessWordMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
   return closeSession('abandoned', progress, activeSession.successful, errors);
 }
 
 async function showHistory() {
   window.clearTimeout(advanceTimer);
   activeExerciseTitle.hidden = true;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; historyScreen.hidden = false;
+  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; historyScreen.hidden = false;
   await sessionWriteQueue;
   const db = await historyDatabase;
   const request = db.transaction('sessions', 'readonly').objectStore('sessions').getAll();
@@ -130,7 +136,30 @@ const memoryPictures = [
   { icon: '🪥', name: 'зубная щётка' }, { icon: '🕯️', name: 'свеча' }, { icon: '🧸', name: 'игрушка' },
   { icon: '🎈', name: 'шарик' }, { icon: '🎁', name: 'подарок' }, { icon: '🧩', name: 'пазл' },
   { icon: '🪴', name: 'растение' }, { icon: '🍽️', name: 'тарелка' }, { icon: '🧼', name: 'мыло' },
-  { icon: '🧳', name: 'чемодан' }, { icon: '📞', name: 'телефон' }, { icon: '🔔', name: 'звонок' }
+  { icon: '🧳', name: 'чемодан' }, { icon: '📞', name: 'телефон' }, { icon: '🔔', name: 'звонок' },
+  { icon: '🍐', name: 'груша' }, { icon: '🍊', name: 'апельсин' }, { icon: '🍋', name: 'лимон' },
+  { icon: '🍇', name: 'виноград' }, { icon: '🍉', name: 'арбуз' }, { icon: '🍒', name: 'вишня' },
+  { icon: '🍍', name: 'ананас' }, { icon: '🍅', name: 'помидор' }, { icon: '🥔', name: 'картофель' },
+  { icon: '🥒', name: 'огурец' }, { icon: '🧅', name: 'лук' }, { icon: '🧄', name: 'чеснок' },
+  { icon: '🌽', name: 'кукуруза' }, { icon: '🥬', name: 'капуста' }, { icon: '🥦', name: 'брокколи' },
+  { icon: '🫑', name: 'перец' }, { icon: '🥄', name: 'ложка' }, { icon: '🍴', name: 'вилка' },
+  { icon: '🔪', name: 'нож' }, { icon: '🫖', name: 'чайник' }, { icon: '🥛', name: 'молоко' },
+  { icon: '📷', name: 'фотоаппарат' }, { icon: '💡', name: 'лампа' }, { icon: '🔦', name: 'фонарик' },
+  { icon: '🪞', name: 'зеркало' }, { icon: '🛏️', name: 'кровать' }, { icon: '🪑', name: 'стул' },
+  { icon: '🛋️', name: 'диван' }, { icon: '🚪', name: 'дверь' }, { icon: '🪟', name: 'окно' },
+  { icon: '🧹', name: 'метла' }, { icon: '🪣', name: 'ведро' }, { icon: '🧺', name: 'корзина' },
+  { icon: '🧻', name: 'бумага' }, { icon: '🧽', name: 'губка' }, { icon: '👕', name: 'футболка' },
+  { icon: '👖', name: 'брюки' }, { icon: '👗', name: 'платье' }, { icon: '👒', name: 'шляпа' },
+  { icon: '👟', name: 'кроссовки' }, { icon: '👢', name: 'сапоги' }, { icon: '👜', name: 'сумка' },
+  { icon: '🎒', name: 'рюкзак' }, { icon: '🧣', name: 'шарф' }, { icon: '👔', name: 'галстук' },
+  { icon: '🔨', name: 'молоток' }, { icon: '🪚', name: 'пила' }, { icon: '🪛', name: 'отвёртка' },
+  { icon: '🪜', name: 'лестница' }, { icon: '✂️', name: 'ножницы' }, { icon: '🖊️', name: 'ручка' },
+  { icon: '📏', name: 'линейка' }, { icon: '🔒', name: 'замок' }, { icon: '🔑', name: 'ключик' },
+  { icon: '📎', name: 'скрепка' }, { icon: '🚗', name: 'машина' }, { icon: '🚌', name: 'автобус' },
+  { icon: '🚕', name: 'такси' }, { icon: '🚂', name: 'поезд' }, { icon: '🚢', name: 'корабль' },
+  { icon: '🚜', name: 'трактор' }, { icon: '🚚', name: 'грузовик' }, { icon: '🛴', name: 'самокат' },
+  { icon: '🎸', name: 'гитара' }, { icon: '🎹', name: 'пианино' }, { icon: '🥁', name: 'барабан' },
+  { icon: '🎻', name: 'скрипка' }, { icon: '🔋', name: 'батарейка' }, { icon: '🧭', name: 'компас' }
 ];
 let rememberedPictures = [];
 
@@ -183,7 +212,7 @@ function showHome() {
   window.clearTimeout(advanceTimer);
   abandonActiveSession();
   activeExerciseTitle.hidden = true;
-  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
+  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
 }
 
 function startExercise() {
@@ -494,6 +523,213 @@ function finishLettersExercise() {
 
 document.querySelector('[data-exercise="letters"]')?.addEventListener('click', beginLettersExercise);
 
+const guessWordExamples = Array.from(new Set(`
+ромашка карандаш самолёт бабочка телефон клубника велосипед календарь варежка черепаха помидоры пылесос
+тарелка кастрюля сковорода чайник стакан кружка ложка вилка ножик салфетка полотенце скатерть поднос сахарница хлебница
+будильник лампочка розетка выключатель батарея холодильник морозилка духовка плита раковина кран табурет шкафчик комод диван
+кровать матрас подушка одеяло простыня наволочка зеркало расчёска щётка мыло шампунь мочалка халат тапочки корзина
+картина полка ковёр штора занавеска вешалка ключница дверца окно балкон коридор прихожая спальня кухня ванная кладовка
+тетрадь учебник словарь альбом открытка конверт карандаш фломастер линейка точилка закладка газета журнал письмо марка
+книга рассказ сказка загадка пословица букварь чернила бумага папка файл кнопка скрепка клеёнка ножницы калькулятор
+яблоко груша банан лимон апельсин мандарин абрикос персик слива вишня черешня малина смородина крыжовник виноград
+арбуз дыня ананас гранат киви манго папайя финики изюм орехи миндаль фундук семечки чернослив курага
+картофель морковь свёкла капуста огурец помидор редиска репа тыква кабачок баклажан горошек фасоль чеснок петрушка
+укроп салат шпинат щавель редька кукуруза грибочек шампиньон лисичка опёнок картошка брокколи сельдерей кинза базилик
+молоко кефир ряженка творог сметана масло сырок йогурт сливки мороженое колбаса сосиска котлета пельмени вареники
+хлеб батон булочка баранка сухарик пирожок ватрушка печенье пряник конфета карамель шоколад мармелад зефир пастила
+супчик борщ рассольник окрошка каша омлет яичница макароны лапша гречка рисинка овсянка пшено манка сырники
+воробей голубь ласточка синица снегирь сорока ворона скворец соловей дятел чайка утка гусь петух индюк
+кошка собака щенок котёнок корова лошадь ослик коза овечка свинья кролик белка ёжик лиса волк
+медведь заяц олень кабан барсук бобр выдра хорёк мышка крыса хомяк сурок лось рысь тигр
+слон жираф зебра обезьяна кенгуру верблюд бегемот носорог леопард гепард панда коала дельфин китёнок тюлень
+карась окунь плотва щука сомик лещ форель сазан судак налим треска килька сельдь креветка кальмар
+муравей комарик стрекоза кузнечик божьякоровка гусеница паучок жучок пчела шмель бабочка мотылёк таракан сверчок
+берёза осина рябина калина тополь клён дубок сосна ельник ива липа яблоня вишня сирень жасмин
+ромашка василёк одуванчик тюльпан гвоздика ландыш колокольчик фиалка незабудка пион астра георгин ирис нарцисс
+земля небо облако солнце месяц звезда радуга дождик снегопад ветерок туман гроза молния иней лужица
+весна лето осень зима январь февраль март апрель май июнь июль август сентябрь октябрь ноябрь декабрь
+утро вечер полдень ночь неделя месяц годик минута секунда праздник выходной каникулы прогулка поездка дорога
+машина автобус трамвай троллейбус метро поезд вагон самолёт кораблик лодка такси велосипед самокат трактор грузовик
+улица площадь проспект переулок мостик тоннель вокзал аэропорт станция остановка светофор переход тротуар парковка гараж
+больница аптека магазин рынок почта школа библиотека музей театр цирк стадион бассейн парк сквер фонтан
+доктор медсестра аптекарь учитель повар водитель продавец почтальон садовник строитель маляр портной столяр рыбак
+пальто куртка рубашка футболка юбочка платье брюки джинсы шорты носочки чулки шапочка шляпа кепка шарфик
+перчатки варежки сапоги ботинки туфли тапки сандалии ремень сумочка рюкзак кошелёк зонтик платочек брошь
+рука ладонь палец локоть плечо спина живот голова волосы брови ресницы глаза уши носик губы
+зубы язык шея колено пятка стопа ноготь сердце лёгкие желудок печень кровь кость кожа мышца
+улыбка смех радость грусть покой забота надежда дружба семья мама папа бабушка дедушка внучка внук
+сосед знакомый товарищ подруга коллега гость хозяин семья супруг супруга брат сестра дядя тётя племянник
+цифра буква слово фраза вопрос ответ задача пример число счёт сумма разница таблица правило урок
+цвет белый чёрный красный синий зелёный жёлтый оранжевый фиолетовый розовый серый коричневый золотой серебряный
+круг квадрат треугольник прямоугольник линия точка угол сторона вершина середина размер форма длина ширина высота
+иголка нитка пуговица ткань шерсть хлопок лента тесьма напёрсток спица крючок клубок выкройка карман воротник
+молоток отвёртка плоскогубцы пила топор лопата грабли тяпка ведро метёлка совок фонарик замочек цепочка
+сад огород клумба грядка теплица рассада семена росток листочек веточка корешок ягода урожай яблоко груша
+река озеро море берег остров гора холм долина поле луг лес роща тропинка пещера водопад
+песок камень глина земля почва уголь железо медь золото серебро алмаз янтарь жемчуг ракушка коралл
+утюг стиралка сушилка швейнаямашина вентилятор обогреватель радиатор телевизор приёмник магнитофон колонка наушники зарядка
+компьютер клавиатура мышка экран принтер флешка пароль сайт почта сообщение звонок фотография видеоролик приложение
+футбол хоккей теннис шахматы шашки домино лото кроссворд пазл мячик ракетка лыжи коньки санки
+зарядка гимнастика прогулка плавание рыбалка охота поход танец песня музыка мелодия оркестр артист певец
+часики календарик записнаякнижка кошелёк очки ключи паспорт билет квитанция рецепт тонометр градусник пластырь бинтик
+подарок сюрприз свечка открытка букет игрушка кукла мишка кубики барабан дудочка свисток кораблик мельница
+погода тепло холод мороз жара солнце дождь снег ветер облачность рассвет закат сумерки полночь
+пельмени ватрушка оладьи блины пироги кексик рулет пирожное варенье повидло джем сироп мёд сахар
+праздник юбилей свадьба встреча беседа разговор новость совет помощь просьба благодарность пожелание приглашение
+билетик маршрут карта адрес номер подъезд этаж квартира лифт лестница звонок домофон почтовыйящик
+будка кормушка поводок ошейник клетка аквариум террариум гнездо норка берлога муравейник паутина перо клюв
+зерно мука крупа соль перец лаврушка гвоздика корица ваниль дрожжи уксус соус горчица кетчуп
+корабль парус якорь штурвал маяк причал гавань волна шторм компас карта глобус капитан матрос
+утёнок цыплёнок жеребёнок телёнок козлёнок ягнёнок поросёнок котик пёсик белочка лисёнок медвежонок
+зеркальце расчёска зубочистка зубнаящётка полотенчико салфеточка мочалочка шампунь кремик духи помада пудра
+светильник люстра торшер бра ночник подсвечник свеча лампа абажур выключатель провод розетка батарейка
+магазинчик булочная пекарня столовая кафе ресторан парикмахерская мастерская прачечная химчистка поликлиника санаторий
+племянница крестница крестник родственник одноклассник однокурсник земляк знакомая незнакомец прохожий пассажир покупатель
+тележка корзинка упаковка ценник кассир чек сдача очередь витрина прилавок продавщица покупка доставка
+пирог булочка крендель бублик ватрушка рогалик пончик слойка калач пряник печенье сухарик
+гвоздь шуруп болтик гайка доска брусок кирпич цемент краска кисточка валик шпатель рулетка уровень
+ремонт уборка стирка глажка готовка покупка готовность чистота порядок уют тишина отдых сон
+снеговик сосулька сугроб метель вьюга оттепель капель проталина снежинка ледок каток варежка шубка
+грибница черника брусника земляника ежевика облепиха шиповник морошка клюква рябина черёмуха орешник
+путешествие чемодан сумка путёвка гостиница номерок пляж купание экскурсия сувенир фотография открытка
+сосиска котлета отбивная тефтеля голубец запеканка салатик винегрет бутерброд сырник кашица омлетик
+косынка платочек фартук жилетка пижама рубаха сарафан кофта свитер кардиган плащ дождевик
+библиотекарь писатель художник поэт музыкант фотограф пожарный полицейский машинист лётчик капитан
+профессор инженер бухгалтер экономист секретарь диспетчер оператор кассир кондитер парикмахер сапожник
+мороженщик почтальон дворник сторож охранник уборщица нянечка воспитатель библиотекарь экскурсовод переводчик
+обед завтрак ужин перекус чаепитие сервировка посуда салфетка тарелочка ложечка вилочка чашечка
+палатка костёр спички термос котелок рюкзак компас бинокль удочка наживка поплавок рыболов
+фотография портрет пейзаж натюрморт рисунок краски кисти карандашик альбомчик рамочка выставка
+космос планета спутник ракета комета астероид телескоп космонавт созвездие галактика орбита
+малыш ребёнок школьник ученик студент учительница воспитанник отличник первоклассник выпускник
+медаль кубок грамота награда победа рекорд чемпион турнир команда игрок тренер судья
+театр сцена занавес артистка актёр спектакль комедия трагедия балет опера концерт аплодисменты
+пальма кактус фикус герань бегония орхидея фиалочка алоэ рассада горшочек лейка удобрение
+домик избушка дача сарай погреб чердак крыльцо веранда калитка забор дорожка беседка
+воздух кислород здоровье лекарство таблетка микстура мазь сироп капсула укол повязка рецепт
+полотнище простынка одеяльце наволочка матрасик пододеяльник кроватка тумбочка комодик шкафчик
+пылинка соринка пятнышко тряпочка губочка щёточка веничек швабра тазик ведёрко порошок
+государство столица область район деревня посёлок городок улица площадь граница страна народ
+музейчик экспонат памятник монумент скульптура фреска картина портрет галерея выставка художество
+капуста морковка картошка свёкла огурчик помидорчик перчик редиска тыковка кабачочек баклажанчик
+соловей кукушка попугай канарейка фламинго пеликан страус павлин лебедь журавль аист
+автобусик трамвайчик троллейбусик электропоезд тепловоз паровозик маршрутка самосвал экскаватор бульдозер
+цветочек лепесток бутон стебелёк тычинка пыльца аромат клумбочка букетик веночек
+мастер ключник часовщик стекольщик плотник каменщик электрик сварщик крановщик грузчик
+сказочник волшебник принцесса королева король рыцарь дракон русалка богатырь герой
+хозяйка хозяйство соседство знакомство приглашение поздравление угощение настроение воспоминание
+тетенька дяденька бабуля дедуля внученька внучек семейство родня поколение фамилия имя
+беседка скамейка качели горка песочница фонарик клумба дорожка газон аллея парк
+троллейбус маршрут автобус остановка билет контролёр водитель кондуктор пассажир чемодан
+погребок чердак гаражик сарайчик теплица банька колодец скважина насос труба крыша
+плед покрывало подушка одеяло матрас простыня наволочка кровать диван кресло табуретка
+чистка стирка глаженье мытьё поливка посадка прополка уборка готовка починка штопка
+воротник рукав пуговка кармашек молния подошва каблук шнурок застёжка ремешок пряжка
+кувшин бутылка баночка коробочка пакетик мешочек контейнер тарелка чашка блюдечко
+звонок гудок сигнал будильник таймер секундомер календарь дневник блокнот напоминание
+паучок комарик мошкара кузнечик стрекоза бабочка пчёлка шмель муха жужелица
+свёкор свекровь тёща тесть зять невестка свояк свояченица крестница крестник
+загадка ребус головоломка считалка скороговорка поговорка стихотворение песенка мелодия
+чемпионка спортсменка гимнастка пловчиха фигуристка лыжница бегунья шахматистка
+пирожочек булочка печеньице конфетка шоколадка мороженое карамелька мармеладка
+капелька снежинка сосулька льдинка тучка облачко ветерок солнышко радуга
+креслице диванчик столик шкафчик полочка тумбочка коврик шторка дверца
+светофор переход остановка тротуар обочина перекрёсток шлагбаум заправка парковка
+помощник советчик собеседник соседушка попутчик товарищ знакомец приятель наставник
+поляна опушка чаща овраг ручеёк родник водоём болото трясина кочка
+пальчик ладошка локоток коленка пяточка носочек ресничка бровинка щёчка
+голубика брусника малина черника смородина крыжовник земляника ежевика клюква
+сервант буфет этажерка комод тумба трюмо шкаф купе стеллаж вешалка
+прихватка ситечко дуршлаг тёрка лопаточка шумовка половник кастрюлька
+зернышко росточек листочек веточка корешок стебелёк лепесточек шишечка
+путёвочка сувенирчик магнитик брелок открытка ракушка песочек камушек
+врачиха санитарка лаборант терапевт окулист хирург стоматолог медик фельдшер
+троллейбус автобус маршрутка трамвай метро поезд самолёт такси кораблик
+`.trim().split(/\s+/))).filter(word => [...word].length >= 6 && [...word].length <= 9).slice(0, 500);
+const guessWordAlphabet = ['а', 'б', 'в', 'г', 'д', 'е', 'и', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ч', 'ш', 'я'];
+
+function createGuessWordSequence() {
+  return shuffle(guessWordExamples).slice(0, TOTAL_QUESTIONS).map(word => {
+    const missingCount = word.length >= 8 ? 4 : 3;
+    const missing = selectMissingLetters(word.length, missingCount);
+    const requiredLetters = missing.map(index => word[index]);
+    const distractors = shuffle(guessWordAlphabet.filter(letter => !requiredLetters.includes(letter))).slice(0, 2);
+    return { word, missing, requiredLetters, options: shuffle([...requiredLetters, ...distractors]) };
+  });
+}
+
+function selectMissingLetters(wordLength, count) {
+  const positions = [...Array(wordLength).keys()];
+  let missing;
+  do {
+    missing = shuffle(positions).slice(0, count).sort((a, b) => a - b);
+  } while (missing.some((position, index) => index > 1 && position === missing[index - 1] + 1 && position === missing[index - 2] + 2));
+  return missing;
+}
+
+function beginGuessWordExercise() {
+  guessWordRound = 0; guessWordMistakes = 0; guessWordRoundHadMistake = false;
+  guessWordSequence = createGuessWordSequence(); beginSession('Угадай слово'); startGuessWordRound();
+}
+
+function startGuessWordRound() {
+  activeExercise = 'guess-word'; guessWordMissingIndex = 0; guessWordRoundHadMistake = false;
+  activeExerciseTitle.textContent = 'Угадай слово'; activeExerciseTitle.hidden = false;
+  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; guessWordScreen.hidden = false;
+  const question = guessWordSequence[guessWordRound];
+  document.querySelector('#guess-word-round').textContent = guessWordRound + 1;
+  document.querySelector('#guess-word-mistakes').textContent = guessWordMistakes;
+  document.querySelector('#guess-word-progress').style.width = `${(guessWordRound / TOTAL_QUESTIONS) * 100}%`;
+  document.querySelector('#guess-word-feedback').textContent = '';
+  renderGuessWordSlots(question);
+  const list = document.querySelector('#guess-word-options'); list.innerHTML = '';
+  question.options.forEach(letter => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'guess-letter-option'; button.textContent = letter;
+    button.addEventListener('click', () => chooseGuessWordLetter(button, letter)); list.append(button);
+  });
+}
+
+function renderGuessWordSlots(question) {
+  const activePosition = question.missing[guessWordMissingIndex];
+  document.querySelector('#word-slots').innerHTML = [...question.word].map((letter, index) => {
+    const missingIndex = question.missing.indexOf(index);
+    const isFilled = missingIndex !== -1 && missingIndex < guessWordMissingIndex;
+    const state = index === activePosition ? ' is-empty is-active' : missingIndex !== -1 && !isFilled ? ' is-empty' : '';
+    return `<span class="word-slot${state}">${isFilled || missingIndex === -1 ? letter : ''}</span>`;
+  }).join('');
+}
+
+function chooseGuessWordLetter(button, letter) {
+  if (button.disabled) return;
+  const question = guessWordSequence[guessWordRound]; const expected = question.requiredLetters[guessWordMissingIndex];
+  const feedback = document.querySelector('#guess-word-feedback');
+  if (letter !== expected) {
+    button.disabled = true; button.classList.add('is-wrong'); guessWordMistakes += 1; guessWordRoundHadMistake = true;
+    document.querySelector('#guess-word-mistakes').textContent = guessWordMistakes;
+    feedback.textContent = 'Эта буква не подходит. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong';
+    updateActiveSession(guessWordRound, activeSession.successful, guessWordMistakes); return;
+  }
+  button.disabled = true; button.classList.add('is-correct', 'is-used'); guessWordMissingIndex += 1; renderGuessWordSlots(question);
+  if (guessWordMissingIndex < question.missing.length) {
+    feedback.textContent = 'Верно! Теперь заполните выделенную клетку.'; feedback.className = 'answer-feedback is-correct'; return;
+  }
+  document.querySelectorAll('#guess-word-options button').forEach(item => item.disabled = true);
+  feedback.textContent = 'Слово угадано! Отличная работа.'; feedback.className = 'answer-feedback is-correct';
+  document.querySelector('#guess-word-progress').style.width = `${((guessWordRound + 1) / TOTAL_QUESTIONS) * 100}%`;
+  updateActiveSession(guessWordRound + 1, activeSession.successful + (guessWordRoundHadMistake ? 0 : 1), guessWordMistakes);
+  advanceTimer = window.setTimeout(() => { guessWordRound += 1; guessWordRound === TOTAL_QUESTIONS ? finishGuessWordExercise() : startGuessWordRound(); }, 1400);
+}
+
+function finishGuessWordExercise() {
+  guessWordScreen.hidden = true; result.hidden = false; closeSession('completed', TOTAL_QUESTIONS, activeSession.successful, guessWordMistakes);
+  const flawless = guessWordMistakes === 0;
+  document.querySelector('#result-title').textContent = flawless ? 'Прекрасно!' : 'Упражнение пройдено!';
+  document.querySelector('#result-description').textContent = flawless ? 'Вы угадали все слова без ошибок. Так держать!' : 'Вы прошли все задания со словами.';
+  document.querySelector('#result-correct-number').textContent = TOTAL_QUESTIONS; document.querySelector('#result-mistakes-number').textContent = guessWordMistakes;
+}
+
+document.querySelector('[data-exercise="guess-word"]')?.addEventListener('click', beginGuessWordExercise);
+
 function beginPairsExercise() {
   pairsRound = 0; pairsMistakes = 0; pairsRoundHadMistake = false;
   pairsSequence = createNewSequence('agiliko-pairs-order', TOTAL_QUESTIONS * 3);
@@ -576,9 +812,12 @@ function startOddRound() { activeExercise = 'odd'; oddHadMistake = false; home.h
 function finishOdd() { oddScreen.hidden = true; result.hidden = false; closeSession('completed', 10, activeSession.successful, oddMistakes); document.querySelector('#result-title').textContent = 'Упражнение пройдено!'; document.querySelector('#result-description').textContent = 'Вы нашли лишние предметы.'; document.querySelector('#result-correct-number').textContent = 10; document.querySelector('#result-mistakes-number').textContent = oddMistakes; }
 document.querySelector('[data-exercise="odd"]')?.addEventListener('click', beginOddExercise);
 document.querySelector('#pairs-ready')?.addEventListener('click', beginPairsSearch);
+document.querySelectorAll('[data-exercise]').forEach(button => button.addEventListener('click', () => {
+  if (button.dataset.exercise !== 'guess-word') guessWordScreen.hidden = true;
+}));
 document.querySelectorAll('[data-action="home"]').forEach(button => button.addEventListener('click', showHome));
 document.querySelector('[data-action="history"]')?.addEventListener('click', async () => { await abandonActiveSession(); showHistory(); });
-document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
+document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'guess-word' ? beginGuessWordExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));

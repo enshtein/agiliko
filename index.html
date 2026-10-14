@@ -69,6 +69,14 @@
             <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
+          <button class="exercise-card exercise-card--active exercise-card--guess-word" type="button" data-exercise="guess-word">
+            <span class="card-icon" aria-hidden="true">▯А▯</span>
+            <span class="card-copy">
+              <span class="card-title">Угадай слово</span>
+            </span>
+            <span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+
           <button class="exercise-card exercise-card--active exercise-card--pairs" type="button" data-exercise="pairs">
             <span class="card-icon" aria-hidden="true">🃏</span>
             <span class="card-copy"><span class="card-title">Найди пару</span></span>
@@ -169,6 +177,20 @@
           <p class="letters-word" id="letters-word"></p>
           <div class="letters-options" id="letters-options" aria-label="Варианты букв"></div>
           <div class="answer-feedback" id="letters-feedback" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="guess-word-screen" aria-labelledby="guess-word-title" hidden>
+        <div class="words-topline">
+          <button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button>
+          <div class="progress-track"><span id="guess-word-progress"></span><b><span id="guess-word-round">1</span> из 10</b></div>
+          <div class="mistakes-count">Ошибок: <span id="guess-word-mistakes">0</span></div>
+        </div>
+        <div class="guess-word-area">
+          <h1 id="guess-word-title">Угадайте слово</h1>
+          <div class="word-slots" id="word-slots" aria-live="polite" aria-label="Слово с пропущенными буквами"></div>
+          <div class="guess-word-options" id="guess-word-options" aria-label="Буквы для выбора"></div>
+          <div class="answer-feedback" id="guess-word-feedback" role="status" aria-live="polite"></div>
         </div>
       </section>
 
