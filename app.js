@@ -1,5 +1,4 @@
 const home = document.querySelector('.exercise-section');
-const tip = document.querySelector('.tip');
 const game = document.querySelector('.game-screen');
 const result = document.querySelector('.result-screen');
 const memoryScreen = document.querySelector('.memory-screen');
@@ -13,7 +12,18 @@ const categoryScreen = document.querySelector('.category-screen');
 const sequenceScreen = document.querySelector('.sequence-screen');
 const mazeScreen = document.querySelector('.maze-screen');
 const historyScreen = document.querySelector('.history-screen');
+const achievementsScreen = document.querySelector('.achievements-screen');
 const activeExerciseTitle = document.querySelector('#active-exercise-title');
+const homeBrand = document.querySelector('#home-brand');
+const exerciseBack = document.querySelector('#exercise-back');
+const exerciseHeaderStatus = document.querySelector('#exercise-header-status');
+const headerProgressFill = document.querySelector('#header-progress-fill');
+const headerProgressText = document.querySelector('#header-progress-text');
+const headerErrors = document.querySelector('#header-errors');
+const homeScore = document.querySelector('#home-score');
+const homeScoreValue = document.querySelector('#home-score-value');
+const homeScoreMedal = document.querySelector('#home-score-medal');
+const achievementToast = document.querySelector('#achievement-toast');
 const equation = document.querySelector('.equation');
 const answers = document.querySelector('#answers');
 const feedback = document.querySelector('#answer-feedback');
@@ -63,6 +73,144 @@ let categoryRound = 0, categoryMistakes = 0, categorySequence = [], categoryRoun
 let sequenceRound = 0, sequenceMistakes = 0, sequenceItems = [], sequenceRoundHadMistake = false;
 let mazeRound = 0, mazeMistakes = 0, mazeItems = [], mazeRoundHadMistake = false;
 
+const medals = [
+  [50, 'Первый шаг', '🌱'], [100, 'Добрый старт', '⭐'], [150, 'Внимательный', '🔎'], [200, 'Уверенный', '🏅'],
+  [300, 'Знаток', '🧠'], [400, 'Искатель', '🧭'], [500, 'Мастер дня', '🌞'],
+  [750, 'Серебряный ум', '🥈'], [1000, 'Золотой ум', '🥇'],
+  [1500, 'Хранитель памяти', '🦉'], [2000, 'Чемпион привычки', '🏆'], [2500, 'Мудрый советчик', '📚'],
+  [3000, 'Звезда', '🌟'], [3500, 'Сила мысли', '💎'], [4000, 'Большая победа', '🎖️'],
+  [4500, 'Настоящий мастер', '👑'], [5000, 'Легенда', '🚀']
+];
+const achievementStorageKey = 'agiliko-achievements-v1';
+let achievementToastTimer;
+let isAchievementsView = false;
+const firstTryPoints = { count: 2, memory: 2, change: 2, 'guess-word': 2, sequence: 2 };
+let soundContext;
+
+function getCurrentMedalProgress() {
+  const index = medals.findIndex(([points]) => achievements.points < points);
+  const medalIndex = index === -1 ? medals.length - 1 : index;
+  const previousThreshold = index <= 0 ? 0 : medals[index - 1][0];
+  const requiredPoints = medals[medalIndex][0];
+  const progress = index === -1 ? 1 : Math.max(0, Math.min(1, (achievements.points - previousThreshold) / (requiredPoints - previousThreshold)));
+  return { medalIndex, progress };
+}
+
+function prepareSound() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return null;
+  soundContext ||= new AudioContext();
+  if (soundContext.state === 'suspended') soundContext.resume().catch(() => {});
+  return soundContext;
+}
+
+function playSound(notes) {
+  const context = prepareSound();
+  if (!context) return;
+  const start = context.currentTime + .03;
+  notes.forEach(([frequency, offset, duration]) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine'; oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(.0001, start + offset);
+    gain.gain.exponentialRampToValueAtTime(.11, start + offset + .025);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + offset + duration);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(start + offset); oscillator.stop(start + offset + duration + .03);
+  });
+}
+
+function playCompletionSound() { playSound([[523.25, 0, .22], [659.25, .1, .26], [783.99, .2, .42]]); }
+function playMedalSound() { playSound([[523.25, 0, .16], [659.25, .09, .18], [783.99, .18, .22], [1046.5, .28, .55]]); }
+
+function loadAchievements() {
+  try {
+    return { points: 0, correct: 0, errors: 0, ...JSON.parse(localStorage.getItem(achievementStorageKey) || '{}') };
+  } catch {
+    return { points: 0, correct: 0, errors: 0 };
+  }
+}
+
+let achievements = loadAchievements();
+
+function renderAchievementSummary() {
+  const { medalIndex, progress } = getCurrentMedalProgress();
+  const currentMedal = medals[medalIndex];
+  homeScoreValue.textContent = `${achievements.points} баллов`;
+  homeScoreMedal.textContent = currentMedal[2];
+  homeScoreMedal.hidden = false;
+  homeScoreMedal.style.setProperty('--medal-progress', `${Math.round(progress * 100)}%`);
+  homeScoreMedal.classList.toggle('is-pending', progress === 0);
+  homeScore.setAttribute('aria-label', `Ваши баллы: ${achievements.points}. Открыть награды`);
+}
+
+function showAchievementToast(medal) {
+  achievementToast.innerHTML = `<span aria-hidden="true">${medal[2]}</span><div><b>Новая награда!</b><br>${medal[1]} — ${medal[0]} баллов</div>`;
+  achievementToast.hidden = false;
+  playMedalSound();
+  window.clearTimeout(achievementToastTimer);
+  achievementToastTimer = window.setTimeout(() => { achievementToast.hidden = true; }, 5000);
+}
+
+function recordAchievement(isCorrect, points = 1) {
+  const previousPoints = achievements.points;
+  achievements = {
+    ...achievements,
+    points: achievements.points + (isCorrect ? points : -1),
+    correct: achievements.correct + (isCorrect ? 1 : 0),
+    errors: achievements.errors + (isCorrect ? 0 : 1)
+  };
+  localStorage.setItem(achievementStorageKey, JSON.stringify(achievements));
+  renderAchievementSummary();
+  const unlockedMedal = medals.find(([points]) => previousPoints < points && achievements.points >= points);
+  if (unlockedMedal) showAchievementToast(unlockedMedal);
+}
+
+function recordRoundResult(hadMistake) {
+  if (!hadMistake) recordAchievement(true, firstTryPoints[activeExercise] || 1);
+}
+
+function showAchievements() {
+  window.clearTimeout(advanceTimer);
+  abandonActiveSession();
+  isAchievementsView = true;
+  activeExerciseTitle.textContent = 'Ваши награды';
+  activeExerciseTitle.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = false;
+  document.querySelector('.topbar').classList.add('is-achievements');
+  renderAchievementSummary();
+  const grid = document.querySelector('#medals-grid');
+  const { medalIndex, progress } = getCurrentMedalProgress();
+  grid.innerHTML = medals.map(([points, title, icon], index) => {
+    const unlocked = achievements.points >= points;
+    const isProgressing = index === medalIndex && progress > 0 && progress < 1;
+    return `<article class="medal${unlocked ? ' is-unlocked' : ''}${isProgressing ? ' is-progressing' : ''}"${isProgressing ? ` style="--medal-progress: ${Math.round(progress * 100)}%"` : ''}><span class="medal-icon" aria-hidden="true">${icon}</span><h2>${title}</h2><p>${unlocked ? 'Получена' : `${points} баллов`}</p></article>`;
+  }).join('');
+}
+
+const topbarProgressSources = {
+  count: ['#question-number', '#mistakes-number', '#progress-bar'], memory: ['#memory-round', '#memory-mistakes', '#memory-progress'],
+  words: ['#words-round', '#words-mistakes', '#words-progress'], change: ['#change-round', '#change-mistakes', '#change-progress'],
+  letters: ['#letters-round', '#letters-mistakes', '#letters-progress'], 'guess-word': ['#guess-word-round', '#guess-word-mistakes', '#guess-word-progress'],
+  pairs: ['#pairs-round', '#pairs-mistakes', '#pairs-progress'], odd: ['#odd-round', '#odd-mistakes', '#odd-progress'],
+  category: ['#category-round', '#category-mistakes', '#category-progress'], sequence: ['#sequence-round', '#sequence-mistakes', '#sequence-progress'], maze: ['#maze-round', '#maze-mistakes', '#maze-progress']
+};
+
+function syncExerciseTopbar() {
+  const isExercise = !activeExerciseTitle.hidden && !isAchievementsView;
+  const isActivityView = isExercise || isAchievementsView;
+  homeBrand.hidden = isActivityView; exerciseBack.hidden = !isActivityView; exerciseHeaderStatus.hidden = !isExercise;
+  document.querySelector('.profile-button').hidden = isActivityView;
+  homeScore.hidden = isExercise;
+  if (!isExercise || !topbarProgressSources[activeExercise]) return;
+  const [roundSelector, mistakesSelector, progressSelector] = topbarProgressSources[activeExercise];
+  const round = document.querySelector(roundSelector).textContent;
+  const mistakes = document.querySelector(mistakesSelector).textContent;
+  const progress = document.querySelector(progressSelector).style.width || '0%';
+  headerProgressText.textContent = `${round}/10`; headerProgressFill.style.width = progress === '0%' ? '0' : `calc(${progress} + 2px)`;
+  headerErrors.textContent = mistakes; headerErrors.setAttribute('aria-label', `Ошибок: ${mistakes}`);
+}
+
 const historyDatabase = new Promise((resolve, reject) => {
   const request = indexedDB.open('agiliko-history', 1);
   request.onupgradeneeded = () => request.result.createObjectStore('sessions', { keyPath: 'id' });
@@ -101,6 +249,7 @@ function closeSession(status, completed, successful, mistakes) {
   if (!activeSession) return;
   const session = { ...activeSession, completed, successful, mistakes, status, completedAt: new Date().toISOString() };
   activeSession = undefined;
+  if (status === 'completed') playCompletionSound();
   return saveSessionSnapshot(session);
 }
 
@@ -113,8 +262,11 @@ function abandonActiveSession() {
 
 async function showHistory() {
   window.clearTimeout(advanceTimer);
+  isAchievementsView = false;
+  document.querySelector('.topbar').classList.remove('is-achievements');
   activeExerciseTitle.hidden = true;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; achievementsScreen.hidden = true; historyScreen.hidden = false;
+  homeScore.hidden = true; document.querySelector('.profile-button').hidden = true;
   await sessionWriteQueue;
   const db = await historyDatabase;
   const request = db.transaction('sessions', 'readonly').objectStore('sessions').getAll();
@@ -217,8 +369,11 @@ function createExercise() {
 function showHome() {
   window.clearTimeout(advanceTimer);
   abandonActiveSession();
+  isAchievementsView = false;
+  document.querySelector('.topbar').classList.remove('is-achievements');
   activeExerciseTitle.hidden = true;
-  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
+  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = true; home.hidden = false;
+  homeScore.hidden = false; document.querySelector('.profile-button').hidden = false; renderAchievementSummary();
 }
 
 function startExercise() {
@@ -228,7 +383,7 @@ function startExercise() {
   questions = createExercise(); currentQuestion = 0; mistakes = 0; countRoundHadMistake = false;
   activeExerciseTitle.hidden = false;
   beginSession('Быстрый счёт');
-  home.hidden = true; tip.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; game.hidden = false;
+  home.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; game.hidden = false;
   renderQuestion();
 }
 
@@ -260,12 +415,14 @@ function chooseAnswer(button, option) {
     feedback.textContent = 'Неверно. Попробуйте ещё раз.';
     feedback.className = 'answer-feedback is-wrong';
     countRoundHadMistake = true;
+    recordAchievement(false);
     updateActiveSession(currentQuestion, activeSession.successful, mistakes);
     return;
   }
   answers.querySelectorAll('button').forEach(item => item.disabled = true);
   answers.classList.add('is-answered');
   button.classList.add('is-correct');
+  recordRoundResult(countRoundHadMistake);
   feedback.textContent = 'Верно! Отличная работа.';
   feedback.className = 'answer-feedback is-correct';
   progressBar.style.width = `${((currentQuestion + 1) / TOTAL_QUESTIONS) * 100}%`;
@@ -299,7 +456,7 @@ function startMemoryExercise() {
   }
   activeExerciseTitle.textContent = 'Предметы и порядок';
   activeExerciseTitle.hidden = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; memoryScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; memoryScreen.hidden = false;
   rememberedPictures = memorySequence.slice(memoryRound * 3, memoryRound * 3 + 3);
   const memoryItems = document.querySelector('#memory-items');
   memoryItems.classList.remove('is-hidden');
@@ -343,6 +500,7 @@ function askMemoryQuestion() {
         button.classList.remove('is-selected'); button.classList.add('is-wrong');
         memoryMistakes += 1; document.querySelector('#memory-mistakes').textContent = memoryMistakes;
         memoryRoundHadMistake = true;
+        recordAchievement(false);
         updateActiveSession(memoryRound, activeSession.successful, memoryMistakes);
         feedback.textContent = 'Неверно. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong';
         advanceTimer = window.setTimeout(askMemoryQuestion, 1800);
@@ -352,6 +510,7 @@ function askMemoryQuestion() {
       if (selection.length !== 3) return;
       list.querySelectorAll('button').forEach(choice => choice.disabled = true);
       list.classList.add('is-answered');
+      recordRoundResult(memoryRoundHadMistake);
       feedback.textContent = 'Верно! Отличная память.'; feedback.className = 'answer-feedback is-correct';
       document.querySelector('#memory-progress').style.width = `${((memoryRound + 1) / TOTAL_QUESTIONS) * 100}%`;
       updateActiveSession(memoryRound + 1, activeSession.successful + (memoryRoundHadMistake ? 0 : 1), memoryMistakes);
@@ -376,7 +535,7 @@ function beginWordsExercise() { wordsRound = 0; wordsMistakes = 0; wordsSequence
 function startWordsRound() {
   activeExercise = 'words'; activeExerciseTitle.textContent = 'Отгадай предмет'; activeExerciseTitle.hidden = false;
   wordsRoundHadMistake = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; wordsScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; wordsScreen.hidden = false;
   const item = wordsSequence[wordsRound];
   const options = shuffle([item, ...shuffle(memoryPictures.filter(other => other !== item)).slice(0, 5)]);
   document.querySelector('#words-round').textContent = wordsRound + 1;
@@ -392,10 +551,12 @@ function startWordsRound() {
         button.disabled = true; button.classList.add('is-wrong'); wordsMistakes += 1;
         document.querySelector('#words-mistakes').textContent = wordsMistakes;
         wordsRoundHadMistake = true;
+        recordAchievement(false);
         updateActiveSession(wordsRound, activeSession.successful, wordsMistakes);
         feedback.textContent = 'Неверно. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong'; return;
       }
       list.querySelectorAll('button').forEach(choice => choice.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct');
+      recordRoundResult(wordsRoundHadMistake);
       feedback.textContent = 'Верно! Отличная работа.'; feedback.className = 'answer-feedback is-correct';
       document.querySelector('#words-progress').style.width = `${((wordsRound + 1) / TOTAL_QUESTIONS) * 100}%`;
       updateActiveSession(wordsRound + 1, activeSession.successful + (wordsRoundHadMistake ? 0 : 1), wordsMistakes);
@@ -435,15 +596,15 @@ function beginChangeExercise() { changeRound = 0; changeMistakes = 0; changeSequ
 function startChangeRound() {
   activeExercise = 'change'; activeExerciseTitle.textContent = 'Сдача в магазине'; activeExerciseTitle.hidden = false;
   changeRoundHadMistake = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; lettersScreen.hidden = true; changeScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; lettersScreen.hidden = true; changeScreen.hidden = false;
   const question = changeSequence[changeRound];
   document.querySelector('#change-round').textContent = changeRound + 1; document.querySelector('#change-mistakes').textContent = changeMistakes;
   document.querySelector('#change-progress').style.width = `${(changeRound / TOTAL_QUESTIONS) * 100}%`;
   document.querySelector('#change-story').innerHTML = `<p>Покупка стоит <strong>${question.price} ₽</strong></p><p>Вы заплатили <strong>${question.paid} ₽</strong></p>`;
   const list = document.querySelector('#change-options'); const feedback = document.querySelector('#change-feedback'); list.innerHTML = ''; list.classList.remove('is-answered'); feedback.textContent = ''; feedback.className = 'answer-feedback';
   question.options.forEach(option => { const button = document.createElement('button'); button.className = 'change-option'; button.type = 'button'; button.textContent = `${option} ₽`; button.addEventListener('click', () => {
-    if (option !== question.answer) { button.disabled = true; button.classList.add('is-wrong'); changeMistakes += 1; document.querySelector('#change-mistakes').textContent = changeMistakes; feedback.textContent = 'Неверно. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong'; changeRoundHadMistake = true; updateActiveSession(changeRound, activeSession.successful, changeMistakes); return; }
-    list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct'); feedback.textContent = 'Верно! Отличная работа.'; feedback.className = 'answer-feedback is-correct'; document.querySelector('#change-progress').style.width = `${((changeRound + 1) / TOTAL_QUESTIONS) * 100}%`; updateActiveSession(changeRound + 1, activeSession.successful + (changeRoundHadMistake ? 0 : 1), changeMistakes); advanceTimer = window.setTimeout(() => { changeRound += 1; changeRound === TOTAL_QUESTIONS ? finishChangeExercise() : startChangeRound(); }, 1300);
+    if (option !== question.answer) { button.disabled = true; button.classList.add('is-wrong'); changeMistakes += 1; document.querySelector('#change-mistakes').textContent = changeMistakes; feedback.textContent = 'Неверно. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong'; changeRoundHadMistake = true; recordAchievement(false); updateActiveSession(changeRound, activeSession.successful, changeMistakes); return; }
+    list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct'); recordRoundResult(changeRoundHadMistake); feedback.textContent = 'Верно! Отличная работа.'; feedback.className = 'answer-feedback is-correct'; document.querySelector('#change-progress').style.width = `${((changeRound + 1) / TOTAL_QUESTIONS) * 100}%`; updateActiveSession(changeRound + 1, activeSession.successful + (changeRoundHadMistake ? 0 : 1), changeMistakes); advanceTimer = window.setTimeout(() => { changeRound += 1; changeRound === TOTAL_QUESTIONS ? finishChangeExercise() : startChangeRound(); }, 1300);
   }); list.append(button); });
 }
 function finishChangeExercise() { changeScreen.hidden = true; result.hidden = false; closeSession('completed', TOTAL_QUESTIONS, activeSession.successful, changeMistakes); const flawless = changeMistakes === 0; document.querySelector('#result-title').textContent = flawless ? 'Прекрасно!' : 'Упражнение пройдено!'; document.querySelector('#result-description').textContent = flawless ? 'Вы правильно посчитали всю сдачу. Так держать!' : 'Вы прошли 10 заданий со сдачей.'; document.querySelector('#result-correct-number').textContent = TOTAL_QUESTIONS; document.querySelector('#result-mistakes-number').textContent = changeMistakes; }
@@ -489,7 +650,7 @@ function beginLettersExercise() {
 function startLettersRound() {
   activeExercise = 'letters'; lettersRoundHadMistake = false;
   activeExerciseTitle.textContent = 'Вставь букву'; activeExerciseTitle.hidden = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = false;
   const question = lettersSequence[lettersRound];
   document.querySelector('#letters-round').textContent = lettersRound + 1;
   document.querySelector('#letters-mistakes').textContent = lettersMistakes;
@@ -502,12 +663,14 @@ function startLettersRound() {
     button.addEventListener('click', () => {
       if (option !== question.answer) {
         button.disabled = true; button.classList.add('is-wrong'); lettersMistakes += 1; lettersRoundHadMistake = true;
+        recordAchievement(false);
         document.querySelector('#letters-mistakes').textContent = lettersMistakes;
         feedback.textContent = 'Неверно. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong';
         updateActiveSession(lettersRound, activeSession.successful, lettersMistakes);
         return;
       }
       list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct');
+      recordRoundResult(lettersRoundHadMistake);
       feedback.textContent = 'Верно! Отличная работа.'; feedback.className = 'answer-feedback is-correct';
       document.querySelector('#letters-progress').style.width = `${((lettersRound + 1) / TOTAL_QUESTIONS) * 100}%`;
       updateActiveSession(lettersRound + 1, activeSession.successful + (lettersRoundHadMistake ? 0 : 1), lettersMistakes);
@@ -656,21 +819,23 @@ const guessWordAlphabet = ['а', 'б', 'в', 'г', 'д', 'е', 'и', 'к', 'л',
 
 function createGuessWordSequence() {
   return shuffle(guessWordExamples).slice(0, TOTAL_QUESTIONS).map(word => {
-    const missingCount = word.length >= 8 ? 4 : 3;
-    const missing = selectMissingLetters(word.length, missingCount);
+    const uniqueLettersCount = new Set([...word]).size;
+    const missingCount = Math.min(word.length >= 8 ? 4 : 3, uniqueLettersCount);
+    const missing = selectMissingLetters(word, missingCount);
     const requiredLetters = missing.map(index => word[index]);
     const distractors = shuffle(guessWordAlphabet.filter(letter => !requiredLetters.includes(letter))).slice(0, 2);
-    return { word, missing, requiredLetters, options: shuffle([...requiredLetters, ...distractors]) };
+    return { word, missing, requiredLetters, options: shuffle([...new Set([...requiredLetters, ...distractors])]) };
   });
 }
 
-function selectMissingLetters(wordLength, count) {
-  const positions = [...Array(wordLength).keys()];
-  let missing;
-  do {
-    missing = shuffle(positions).slice(0, count).sort((a, b) => a - b);
-  } while (missing.some((position, index) => index > 1 && position === missing[index - 1] + 1 && position === missing[index - 2] + 2));
-  return missing;
+function selectMissingLetters(word, count) {
+  const letters = [...word];
+  const positions = letters.map((letter, index) => letters.indexOf(letter) === index ? index : null).filter(index => index !== null);
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const missing = shuffle(positions).slice(0, count).sort((a, b) => a - b);
+    if (!missing.some((position, index) => index > 1 && position === missing[index - 1] + 1 && position === missing[index - 2] + 2)) return missing;
+  }
+  return shuffle(positions).slice(0, count).sort((a, b) => a - b);
 }
 
 function beginGuessWordExercise() {
@@ -681,7 +846,7 @@ function beginGuessWordExercise() {
 function startGuessWordRound() {
   activeExercise = 'guess-word'; guessWordMissingIndex = 0; guessWordRoundHadMistake = false;
   activeExerciseTitle.textContent = 'Угадай слово'; activeExerciseTitle.hidden = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; guessWordScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; guessWordScreen.hidden = false;
   const question = guessWordSequence[guessWordRound];
   document.querySelector('#guess-word-round').textContent = guessWordRound + 1;
   document.querySelector('#guess-word-mistakes').textContent = guessWordMistakes;
@@ -697,7 +862,13 @@ function startGuessWordRound() {
 
 function renderGuessWordSlots(question) {
   const activePosition = question.missing[guessWordMissingIndex];
-  document.querySelector('#word-slots').innerHTML = [...question.word].map((letter, index) => {
+  const slots = document.querySelector('#word-slots');
+  const wordLength = [...question.word].length;
+  const size = wordLength <= 6 ? ['128px', '142px', '88px'] : wordLength === 7 ? ['112px', '130px', '78px'] : wordLength === 8 ? ['98px', '118px', '70px'] : ['86px', '108px', '64px'];
+  slots.style.setProperty('--slot-size', size[0]);
+  slots.style.setProperty('--slot-height', size[1]);
+  slots.style.setProperty('--slot-font-size', size[2]);
+  slots.innerHTML = [...question.word].map((letter, index) => {
     const missingIndex = question.missing.indexOf(index);
     const isFilled = missingIndex !== -1 && missingIndex < guessWordMissingIndex;
     const state = index === activePosition ? ' is-empty is-active' : missingIndex !== -1 && !isFilled ? ' is-empty' : '';
@@ -710,16 +881,22 @@ function chooseGuessWordLetter(button, letter) {
   const question = guessWordSequence[guessWordRound]; const expected = question.requiredLetters[guessWordMissingIndex];
   const feedback = document.querySelector('#guess-word-feedback');
   if (letter !== expected) {
-    button.disabled = true; button.classList.add('is-wrong'); guessWordMistakes += 1; guessWordRoundHadMistake = true;
+    button.classList.add('is-wrong'); guessWordMistakes += 1; guessWordRoundHadMistake = true;
+    recordAchievement(false);
     document.querySelector('#guess-word-mistakes').textContent = guessWordMistakes;
     feedback.textContent = 'Эта буква не подходит. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong';
     updateActiveSession(guessWordRound, activeSession.successful, guessWordMistakes); return;
   }
   button.disabled = true; button.classList.add('is-correct', 'is-used'); guessWordMissingIndex += 1; renderGuessWordSlots(question);
   if (guessWordMissingIndex < question.missing.length) {
+    document.querySelectorAll('#guess-word-options button').forEach(item => {
+      item.disabled = false;
+      item.classList.remove('is-wrong', 'is-correct', 'is-used');
+    });
     feedback.textContent = 'Верно! Теперь заполните выделенную клетку.'; feedback.className = 'answer-feedback is-correct'; return;
   }
   document.querySelectorAll('#guess-word-options button').forEach(item => item.disabled = true);
+  recordRoundResult(guessWordRoundHadMistake);
   feedback.textContent = 'Слово угадано! Отличная работа.'; feedback.className = 'answer-feedback is-correct';
   document.querySelector('#guess-word-progress').style.width = `${((guessWordRound + 1) / TOTAL_QUESTIONS) * 100}%`;
   updateActiveSession(guessWordRound + 1, activeSession.successful + (guessWordRoundHadMistake ? 0 : 1), guessWordMistakes);
@@ -746,7 +923,7 @@ function beginPairsExercise() {
 function startPairsRound() {
   activeExercise = 'pairs'; pairsRoundHadMistake = false; selectedPairCards = []; matchedPairs = 0; pairsLocked = false; pairsPreview = true;
   activeExerciseTitle.textContent = 'Найди пару'; activeExerciseTitle.hidden = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; pairsScreen.hidden = false;
   document.querySelector('#pairs-round').textContent = pairsRound + 1;
   document.querySelector('#pairs-mistakes').textContent = pairsMistakes;
   document.querySelector('#pairs-progress').style.width = `${(pairsRound / TOTAL_QUESTIONS) * 100}%`;
@@ -779,6 +956,7 @@ function choosePairCard(card) {
     advanceTimer = window.setTimeout(() => {
       pairsLocked = false;
       if (matchedPairs !== 3) return;
+      recordRoundResult(pairsRoundHadMistake);
       document.querySelector('#pairs-progress').style.width = `${((pairsRound + 1) / TOTAL_QUESTIONS) * 100}%`;
       updateActiveSession(pairsRound + 1, activeSession.successful + (pairsRoundHadMistake ? 0 : 1), pairsMistakes);
       advanceTimer = window.setTimeout(() => { pairsRound += 1; pairsRound === TOTAL_QUESTIONS ? finishPairsExercise() : startPairsRound(); }, 1100);
@@ -786,6 +964,7 @@ function choosePairCard(card) {
     return;
   }
   first.classList.add('is-wrong'); second.classList.add('is-wrong'); pairsMistakes += 1; pairsRoundHadMistake = true;
+  recordAchievement(false);
   document.querySelector('#pairs-mistakes').textContent = pairsMistakes;
   feedback.textContent = 'Это не пара. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong';
   updateActiveSession(pairsRound, activeSession.successful, pairsMistakes);
@@ -814,7 +993,7 @@ const oddQuestions = [
   ['🍎','🍐','🍌','🚗'], ['🐈','🐕','🐇','📘'], ['☕','🍽️','🥄','⚽'], ['🌷','🌹','🌻','⌚'], ['🧤','🧦','🧢','🚲'], ['🥖','🧀','🍓','🔑'], ['📞','💻','📺','🥕'], ['🪥','🧼','🧴','🎈'], ['🚕','🚌','🚲','🍎'], ['🛏️','🪑','🛋️','☂️']
 ].map(items => ({ items, answer: items[3] }));
 function beginOddExercise() { oddRound = 0; oddMistakes = 0; oddSequence = shuffle(oddQuestions); beginSession('Лишний предмет'); startOddRound(); }
-function startOddRound() { activeExercise = 'odd'; oddHadMistake = false; home.hidden = true; tip.hidden = true; result.hidden = true; oddScreen.hidden = false; activeExerciseTitle.textContent = 'Лишний предмет'; activeExerciseTitle.hidden = false; const q = oddSequence[oddRound]; document.querySelector('#odd-round').textContent = oddRound + 1; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-progress').style.width = `${oddRound * 10}%`; const list = document.querySelector('#odd-options'); list.innerHTML = ''; list.classList.remove('is-answered'); document.querySelector('#odd-feedback').textContent = ''; shuffle(q.items).forEach(item => { const b = document.createElement('button'); b.className = 'letter-option'; b.textContent = item; b.onclick = () => { if (item !== q.answer) { b.disabled = true; b.classList.add('is-wrong'); oddMistakes++; oddHadMistake = true; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-feedback').textContent = 'Неверно. Попробуйте ещё раз.'; updateActiveSession(oddRound, activeSession.successful, oddMistakes); return; } list.querySelectorAll('button').forEach(x => x.disabled = true); list.classList.add('is-answered'); b.classList.add('is-correct'); document.querySelector('#odd-feedback').textContent = 'Верно!'; updateActiveSession(oddRound + 1, activeSession.successful + (oddHadMistake ? 0 : 1), oddMistakes); advanceTimer = setTimeout(() => { oddRound++; oddRound === 10 ? finishOdd() : startOddRound(); }, 1300); }; list.append(b); }); }
+function startOddRound() { activeExercise = 'odd'; oddHadMistake = false; home.hidden = true; result.hidden = true; oddScreen.hidden = false; activeExerciseTitle.textContent = 'Лишний предмет'; activeExerciseTitle.hidden = false; const q = oddSequence[oddRound]; document.querySelector('#odd-round').textContent = oddRound + 1; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-progress').style.width = `${oddRound * 10}%`; const list = document.querySelector('#odd-options'); list.innerHTML = ''; list.classList.remove('is-answered'); document.querySelector('#odd-feedback').textContent = ''; shuffle(q.items).forEach(item => { const b = document.createElement('button'); b.className = 'letter-option'; b.textContent = item; b.onclick = () => { if (item !== q.answer) { b.disabled = true; b.classList.add('is-wrong'); oddMistakes++; oddHadMistake = true; recordAchievement(false); document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-feedback').textContent = 'Неверно. Попробуйте ещё раз.'; updateActiveSession(oddRound, activeSession.successful, oddMistakes); return; } list.querySelectorAll('button').forEach(x => x.disabled = true); list.classList.add('is-answered'); b.classList.add('is-correct'); recordRoundResult(oddHadMistake); document.querySelector('#odd-feedback').textContent = 'Верно!'; updateActiveSession(oddRound + 1, activeSession.successful + (oddHadMistake ? 0 : 1), oddMistakes); advanceTimer = setTimeout(() => { oddRound++; oddRound === 10 ? finishOdd() : startOddRound(); }, 1300); }; list.append(b); }); }
 function finishOdd() { oddScreen.hidden = true; result.hidden = false; closeSession('completed', 10, activeSession.successful, oddMistakes); document.querySelector('#result-title').textContent = 'Упражнение пройдено!'; document.querySelector('#result-description').textContent = 'Вы нашли лишние предметы.'; document.querySelector('#result-correct-number').textContent = 10; document.querySelector('#result-mistakes-number').textContent = oddMistakes; }
 document.querySelector('[data-exercise="odd"]')?.addEventListener('click', beginOddExercise);
 
@@ -917,11 +1096,13 @@ function startChoiceRound(kind) {
   const question = isCategory ? categorySequence[round] : sequenceItems[round];
   const prefix = isCategory ? 'category' : 'sequence';
   activeExerciseTitle.textContent = isCategory ? 'Слово по категории' : 'Что дальше?'; activeExerciseTitle.hidden = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = !isCategory; sequenceScreen.hidden = isCategory; mazeScreen.hidden = true; historyScreen.hidden = true;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = !isCategory; sequenceScreen.hidden = isCategory; mazeScreen.hidden = true; historyScreen.hidden = true;
   document.querySelector(`#${prefix}-round`).textContent = round + 1;
   document.querySelector(`#${prefix}-mistakes`).textContent = errors;
   document.querySelector(`#${prefix}-progress`).style.width = `${(round / TOTAL_QUESTIONS) * 100}%`;
-  document.querySelector(`#${prefix}-title`).textContent = isCategory ? question.title : question.pattern;
+  const title = document.querySelector(`#${prefix}-title`);
+  title.textContent = isCategory ? question.title : question.pattern;
+  if (!isCategory) title.innerHTML = question.pattern.replaceAll('·', '<span class="sequence-separator">•</span>');
   const list = document.querySelector(`#${prefix}-options`); const message = document.querySelector(`#${prefix}-feedback`);
   list.innerHTML = ''; list.classList.remove('is-answered'); message.textContent = ''; message.className = 'answer-feedback';
   shuffle(question.options).forEach(option => {
@@ -937,11 +1118,13 @@ function chooseChoiceAnswer(kind, button, option) {
   if (option !== question.answer) {
     button.disabled = true; button.classList.add('is-wrong');
     if (isCategory) { categoryMistakes += 1; categoryRoundHadMistake = true; } else { sequenceMistakes += 1; sequenceRoundHadMistake = true; }
+    recordAchievement(false);
     const errors = isCategory ? categoryMistakes : sequenceMistakes; document.querySelector(`#${prefix}-mistakes`).textContent = errors;
     message.textContent = 'Пока неверно. Попробуйте ещё раз.'; message.className = 'answer-feedback is-wrong'; updateActiveSession(round, activeSession.successful, errors); return;
   }
   list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct');
   const hadMistake = isCategory ? categoryRoundHadMistake : sequenceRoundHadMistake; const errors = isCategory ? categoryMistakes : sequenceMistakes;
+  recordRoundResult(hadMistake);
   message.textContent = 'Верно! Отличная работа.'; message.className = 'answer-feedback is-correct'; document.querySelector(`#${prefix}-progress`).style.width = `${((round + 1) / TOTAL_QUESTIONS) * 100}%`;
   updateActiveSession(round + 1, activeSession.successful + (hadMistake ? 0 : 1), errors);
   advanceTimer = window.setTimeout(() => { if (isCategory) categoryRound += 1; else sequenceRound += 1; (isCategory ? categoryRound : sequenceRound) === TOTAL_QUESTIONS ? finishChoiceExercise(kind) : startChoiceRound(kind); }, 1300);
@@ -980,7 +1163,7 @@ function beginMazeExercise() {
 function startMazeRound() {
   activeExercise = 'maze'; mazeRoundHadMistake = false;
   activeExerciseTitle.textContent = 'Дорожка к сыру'; activeExerciseTitle.hidden = false;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = false; historyScreen.hidden = true;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = false; historyScreen.hidden = true;
   const question = mazeItems[mazeRound];
   document.querySelector('#maze-round').textContent = mazeRound + 1; document.querySelector('#maze-mistakes').textContent = mazeMistakes; document.querySelector('#maze-progress').style.width = `${(mazeRound / TOTAL_QUESTIONS) * 100}%`;
   renderMaze(question);
@@ -993,8 +1176,8 @@ function startMazeRound() {
 }
 
 function renderMaze(question) {
-  const startY = [62, 145, 228, 311];
-  const endY = [58, 132, 278, 352];
+  const startY = [48, 150, 252, 354];
+  const endY = [50, 150, 260, 355];
   const routeOrder = [0, 1, 2, 3].map(index => (index + question.variant) % 4);
   const paths = Array.from({ length: question.optionCount }, (_, index) => {
     const number = index + 1; const targetY = number === question.correct ? 205 : endY[routeOrder[index]];
@@ -1003,16 +1186,18 @@ function renderMaze(question) {
     const path = `M 92 ${startY[index]} H ${firstX} V ${targetY} H ${secondX} V ${targetY} H ${number === question.correct ? 805 : 735}`;
     return `<text x="42" y="${startY[index] + 10}" class="maze-number">${number}</text><path class="maze-path" d="${path}"/>`;
   }).join('');
-  document.querySelector('#maze-board').innerHTML = `<svg viewBox="0 0 920 410" role="img" aria-label="Проследите дорожку от номера до сыра.">${paths}<text x="830" y="228" font-size="70">🧀</text></svg>`;
+  document.querySelector('#maze-board').innerHTML = `<svg viewBox="0 0 920 410" role="img" aria-label="Проследите дорожку от номера до сыра.">${paths}<text x="830" y="232" font-size="84">🧀</text></svg>`;
 }
 
 function chooseMazeAnswer(button, option) {
   const question = mazeItems[mazeRound]; const list = document.querySelector('#maze-options'); const feedback = document.querySelector('#maze-feedback');
   if (option !== question.correct) {
     button.disabled = true; button.classList.add('is-wrong'); mazeMistakes += 1; mazeRoundHadMistake = true; document.querySelector('#maze-mistakes').textContent = mazeMistakes;
+    recordAchievement(false);
     feedback.textContent = 'Эта дорожка не ведёт к сыру. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong'; updateActiveSession(mazeRound, activeSession.successful, mazeMistakes); return;
   }
   list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct');
+  recordRoundResult(mazeRoundHadMistake);
   feedback.textContent = 'Верно! Мышка добралась до сыра.'; feedback.className = 'answer-feedback is-correct'; document.querySelector('#maze-progress').style.width = `${((mazeRound + 1) / TOTAL_QUESTIONS) * 100}%`;
   updateActiveSession(mazeRound + 1, activeSession.successful + (mazeRoundHadMistake ? 0 : 1), mazeMistakes);
   advanceTimer = window.setTimeout(() => { mazeRound += 1; mazeRound === TOTAL_QUESTIONS ? finishMazeExercise() : startMazeRound(); }, 1400);
@@ -1032,7 +1217,22 @@ document.querySelectorAll('[data-exercise]').forEach(button => button.addEventLi
 }));
 document.querySelectorAll('[data-action="home"]').forEach(button => button.addEventListener('click', showHome));
 document.querySelector('[data-action="history"]')?.addEventListener('click', async () => { await abandonActiveSession(); showHistory(); });
+homeScore?.addEventListener('click', showAchievements);
+document.addEventListener('pointerdown', prepareSound, { once: true });
 document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'maze' ? beginMazeExercise() : activeExercise === 'category' ? beginChoiceExercise('category') : activeExercise === 'sequence' ? beginChoiceExercise('sequence') : activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'guess-word' ? beginGuessWordExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
+
+const topbarObserver = new MutationObserver(syncExerciseTopbar);
+topbarObserver.observe(activeExerciseTitle, { attributes: true, attributeFilter: ['hidden'] });
+Object.values(topbarProgressSources).flat().forEach(selector => {
+  const element = document.querySelector(selector);
+  topbarObserver.observe(element, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style'] });
+});
+syncExerciseTopbar();
+renderAchievementSummary();
+
+window.addEventListener('load', () => {
+  window.requestAnimationFrame(() => document.querySelector('#app-loader')?.classList.add('is-hidden'));
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));

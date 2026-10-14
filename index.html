@@ -11,30 +11,37 @@
     <title>Agiliko — упражнения для мозга</title>
   </head>
   <body>
+    <div class="app-loader" id="app-loader" role="status" aria-live="polite">
+      <div class="app-loader-mark" aria-hidden="true">✦</div>
+      <strong>Agiliko</strong>
+      <p>Подготавливаем упражнения<span class="loader-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+    </div>
     <main class="app-shell">
       <header class="topbar">
-        <a class="brand" href="./" aria-label="Agiliko — главная">
-          <span class="brand-mark" aria-hidden="true">a</span>
+        <a class="brand" id="home-brand" href="./" aria-label="Agiliko — главная">
           <span>Agiliko</span>
         </a>
+        <button class="exercise-back" id="exercise-back" type="button" data-action="home" hidden>← Назад</button>
         <span class="active-exercise-title" id="active-exercise-title" hidden>Быстрый счёт</span>
+        <button class="home-score" id="home-score" type="button" aria-label="Открыть награды">
+          <span class="home-score-label">Ваши баллы</span><span class="home-score-medal" id="home-score-medal" aria-hidden="true" hidden>🌱</span><strong id="home-score-value">0</strong>
+        </button>
+        <div class="exercise-header-status" id="exercise-header-status" hidden>
+          <div class="header-progress"><span id="header-progress-fill"></span><b id="header-progress-text">1/10</b></div>
+          <span class="header-errors" id="header-errors" aria-label="Ошибок: 0">0</span>
+        </div>
         <button class="profile-button" type="button" data-action="history" aria-label="Открыть историю занятий">
-          <span aria-hidden="true">Л</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h10.5A1.5 1.5 0 0 1 18 5v15.5H6A2 2 0 0 1 4 18.5v-13A2 2 0 0 1 6 3.5Z"/><path d="M7.5 8h7M7.5 11.5h7M7.5 15h4.5"/></svg>
         </button>
       </header>
 
-      <section class="exercise-section" aria-labelledby="exercise-title">
-        <div class="section-heading">
-          <h2 id="exercise-title">Упражнения</h2>
-        </div>
-
+      <section class="exercise-section" aria-label="Выбор упражнения">
         <div class="exercise-grid">
           <button class="exercise-card exercise-card--active" type="button" data-exercise="fast-count">
             <span class="card-icon icon-count" aria-hidden="true">➕</span>
             <span class="card-copy">
               <span class="card-title">Быстрый счёт</span>
             </span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--memory" type="button" data-exercise="memory">
@@ -42,7 +49,6 @@
             <span class="card-copy">
               <span class="card-title">Предметы и порядок</span>
             </span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--words" type="button" data-exercise="words">
@@ -50,7 +56,6 @@
             <span class="card-copy">
               <span class="card-title">Отгадай предмет</span>
             </span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--change" type="button" data-exercise="change">
@@ -58,7 +63,6 @@
             <span class="card-copy">
               <span class="card-title">Сдача в магазине</span>
             </span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--letters" type="button" data-exercise="letters">
@@ -66,7 +70,6 @@
             <span class="card-copy">
               <span class="card-title">Вставь букву</span>
             </span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--guess-word" type="button" data-exercise="guess-word">
@@ -74,33 +77,29 @@
             <span class="card-copy">
               <span class="card-title">Угадай слово</span>
             </span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--pairs" type="button" data-exercise="pairs">
             <span class="card-icon" aria-hidden="true">🃏</span>
             <span class="card-copy"><span class="card-title">Найди пару</span></span>
-            <span class="card-arrow" aria-hidden="true">→</span>
           </button>
           <button class="exercise-card exercise-card--active" type="button" data-exercise="odd">
-            <span class="card-icon" aria-hidden="true">🧩</span><span class="card-copy"><span class="card-title">Лишний предмет</span></span><span class="card-arrow" aria-hidden="true">→</span>
+            <span class="card-icon" aria-hidden="true">🧩</span><span class="card-copy"><span class="card-title">Лишний предмет</span></span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--category" type="button" data-exercise="category">
-            <span class="card-icon" aria-hidden="true">🗂️</span><span class="card-copy"><span class="card-title">Слово по категории</span></span><span class="card-arrow" aria-hidden="true">→</span>
+            <span class="card-icon" aria-hidden="true">🗂️</span><span class="card-copy"><span class="card-title">Слово по категории</span></span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--sequence" type="button" data-exercise="sequence">
-            <span class="card-icon" aria-hidden="true">→</span><span class="card-copy"><span class="card-title">Что дальше?</span></span><span class="card-arrow" aria-hidden="true">→</span>
+            <span class="card-icon" aria-hidden="true">→</span><span class="card-copy"><span class="card-title">Что дальше?</span></span>
           </button>
 
           <button class="exercise-card exercise-card--active exercise-card--maze" type="button" data-exercise="maze">
-            <span class="card-icon" aria-hidden="true">🐭</span><span class="card-copy"><span class="card-title">Дорожка к сыру</span></span><span class="card-arrow" aria-hidden="true">→</span>
+            <span class="card-icon" aria-hidden="true">🐭</span><span class="card-copy"><span class="card-title">Дорожка к сыру</span></span>
           </button>
         </div>
       </section>
-
-      <p class="tip"><span aria-hidden="true">✦</span> Лучше понемногу, но регулярно</p>
 
       <section class="game-screen" aria-labelledby="game-title" hidden>
         <div class="game-topline">
@@ -245,7 +244,13 @@
         <p class="history-empty" id="history-empty" hidden>Пока нет занятий.</p>
         <div class="history-list" id="history-list"></div>
       </section>
+
+      <section class="achievements-screen" aria-labelledby="achievements-title" hidden>
+        <h1 id="achievements-title" class="visually-hidden">Ваши награды</h1>
+        <div class="medals-grid" id="medals-grid"></div>
+      </section>
     </main>
+    <div class="achievement-toast" id="achievement-toast" role="status" aria-live="polite" hidden></div>
 
     <script src="./app.js"></script>
   </body>
