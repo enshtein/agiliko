@@ -85,6 +85,18 @@
           <button class="exercise-card exercise-card--active" type="button" data-exercise="odd">
             <span class="card-icon" aria-hidden="true">🧩</span><span class="card-copy"><span class="card-title">Лишний предмет</span></span><span class="card-arrow" aria-hidden="true">→</span>
           </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--category" type="button" data-exercise="category">
+            <span class="card-icon" aria-hidden="true">🗂️</span><span class="card-copy"><span class="card-title">Слово по категории</span></span><span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--sequence" type="button" data-exercise="sequence">
+            <span class="card-icon" aria-hidden="true">→</span><span class="card-copy"><span class="card-title">Что дальше?</span></span><span class="card-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--maze" type="button" data-exercise="maze">
+            <span class="card-icon" aria-hidden="true">🐭</span><span class="card-copy"><span class="card-title">Дорожка к сыру</span></span><span class="card-arrow" aria-hidden="true">→</span>
+          </button>
         </div>
       </section>
 
@@ -209,6 +221,21 @@
         </div>
       </section>
       <section class="odd-screen" aria-labelledby="odd-title" hidden><div class="words-topline"><button class="back-button" type="button" data-action="home">←</button><div class="progress-track"><span id="odd-progress"></span><b><span id="odd-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="odd-mistakes">0</span></div></div><div class="letters-area"><h1 id="odd-title">Какой предмет лишний?</h1><div class="letters-options" id="odd-options"></div><div class="answer-feedback" id="odd-feedback"></div></div></section>
+
+      <section class="category-screen" aria-labelledby="category-title" hidden>
+        <div class="words-topline"><button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button><div class="progress-track"><span id="category-progress"></span><b><span id="category-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="category-mistakes">0</span></div></div>
+        <div class="category-area"><p class="category-prompt">Выберите слово из категории</p><h1 id="category-title"></h1><div class="category-options" id="category-options" aria-label="Варианты слов"></div><div class="answer-feedback" id="category-feedback" role="status" aria-live="polite"></div></div>
+      </section>
+
+      <section class="sequence-screen" aria-labelledby="sequence-title" hidden>
+        <div class="words-topline"><button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button><div class="progress-track"><span id="sequence-progress"></span><b><span id="sequence-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="sequence-mistakes">0</span></div></div>
+        <div class="sequence-area"><p class="category-prompt">Выберите, что будет дальше</p><h1 id="sequence-title" class="sequence-pattern"></h1><div class="category-options" id="sequence-options" aria-label="Варианты продолжения"></div><div class="answer-feedback" id="sequence-feedback" role="status" aria-live="polite"></div></div>
+      </section>
+
+      <section class="maze-screen" aria-labelledby="maze-title" hidden>
+        <div class="words-topline"><button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button><div class="progress-track"><span id="maze-progress"></span><b><span id="maze-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="maze-mistakes">0</span></div></div>
+        <div class="maze-area"><h1 id="maze-title">Какая дорожка приведёт к сыру?</h1><p class="maze-instruction">Проследите дорожку от номера до сыра и выберите номер.</p><div class="maze-board" id="maze-board" aria-label="Лабиринт с дорожками"></div><div class="maze-options" id="maze-options" aria-label="Номера дорожек"></div><div class="answer-feedback" id="maze-feedback" role="status" aria-live="polite"></div></div>
+      </section>
 
       <section class="history-screen" aria-labelledby="history-title" hidden>
         <div class="history-topline">

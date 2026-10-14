@@ -9,6 +9,9 @@ const lettersScreen = document.querySelector('.letters-screen');
 const guessWordScreen = document.querySelector('.guess-word-screen');
 const pairsScreen = document.querySelector('.pairs-screen');
 const oddScreen = document.querySelector('.odd-screen');
+const categoryScreen = document.querySelector('.category-screen');
+const sequenceScreen = document.querySelector('.sequence-screen');
+const mazeScreen = document.querySelector('.maze-screen');
 const historyScreen = document.querySelector('.history-screen');
 const activeExerciseTitle = document.querySelector('#active-exercise-title');
 const equation = document.querySelector('.equation');
@@ -56,6 +59,9 @@ let guessWordSequence = [];
 let guessWordMissingIndex = 0;
 let guessWordRoundHadMistake = false;
 let pairsRoundHadMistake = false;
+let categoryRound = 0, categoryMistakes = 0, categorySequence = [], categoryRoundHadMistake = false;
+let sequenceRound = 0, sequenceMistakes = 0, sequenceItems = [], sequenceRoundHadMistake = false;
+let mazeRound = 0, mazeMistakes = 0, mazeItems = [], mazeRoundHadMistake = false;
 
 const historyDatabase = new Promise((resolve, reject) => {
   const request = indexedDB.open('agiliko-history', 1);
@@ -100,15 +106,15 @@ function closeSession(status, completed, successful, mistakes) {
 
 function abandonActiveSession() {
   if (!activeSession) return;
-  const progress = activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'guess-word' ? guessWordRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
-  const errors = activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'guess-word' ? guessWordMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
+  const progress = activeExercise === 'maze' ? mazeRound : activeExercise === 'category' ? categoryRound : activeExercise === 'sequence' ? sequenceRound : activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'guess-word' ? guessWordRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
+  const errors = activeExercise === 'maze' ? mazeMistakes : activeExercise === 'category' ? categoryMistakes : activeExercise === 'sequence' ? sequenceMistakes : activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'guess-word' ? guessWordMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
   return closeSession('abandoned', progress, activeSession.successful, errors);
 }
 
 async function showHistory() {
   window.clearTimeout(advanceTimer);
   activeExerciseTitle.hidden = true;
-  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; historyScreen.hidden = false;
+  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = false;
   await sessionWriteQueue;
   const db = await historyDatabase;
   const request = db.transaction('sessions', 'readonly').objectStore('sessions').getAll();
@@ -212,7 +218,7 @@ function showHome() {
   window.clearTimeout(advanceTimer);
   abandonActiveSession();
   activeExerciseTitle.hidden = true;
-  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
+  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; home.hidden = false; tip.hidden = false;
 }
 
 function startExercise() {
@@ -811,13 +817,222 @@ function beginOddExercise() { oddRound = 0; oddMistakes = 0; oddSequence = shuff
 function startOddRound() { activeExercise = 'odd'; oddHadMistake = false; home.hidden = true; tip.hidden = true; result.hidden = true; oddScreen.hidden = false; activeExerciseTitle.textContent = 'Лишний предмет'; activeExerciseTitle.hidden = false; const q = oddSequence[oddRound]; document.querySelector('#odd-round').textContent = oddRound + 1; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-progress').style.width = `${oddRound * 10}%`; const list = document.querySelector('#odd-options'); list.innerHTML = ''; list.classList.remove('is-answered'); document.querySelector('#odd-feedback').textContent = ''; shuffle(q.items).forEach(item => { const b = document.createElement('button'); b.className = 'letter-option'; b.textContent = item; b.onclick = () => { if (item !== q.answer) { b.disabled = true; b.classList.add('is-wrong'); oddMistakes++; oddHadMistake = true; document.querySelector('#odd-mistakes').textContent = oddMistakes; document.querySelector('#odd-feedback').textContent = 'Неверно. Попробуйте ещё раз.'; updateActiveSession(oddRound, activeSession.successful, oddMistakes); return; } list.querySelectorAll('button').forEach(x => x.disabled = true); list.classList.add('is-answered'); b.classList.add('is-correct'); document.querySelector('#odd-feedback').textContent = 'Верно!'; updateActiveSession(oddRound + 1, activeSession.successful + (oddHadMistake ? 0 : 1), oddMistakes); advanceTimer = setTimeout(() => { oddRound++; oddRound === 10 ? finishOdd() : startOddRound(); }, 1300); }; list.append(b); }); }
 function finishOdd() { oddScreen.hidden = true; result.hidden = false; closeSession('completed', 10, activeSession.successful, oddMistakes); document.querySelector('#result-title').textContent = 'Упражнение пройдено!'; document.querySelector('#result-description').textContent = 'Вы нашли лишние предметы.'; document.querySelector('#result-correct-number').textContent = 10; document.querySelector('#result-mistakes-number').textContent = oddMistakes; }
 document.querySelector('[data-exercise="odd"]')?.addEventListener('click', beginOddExercise);
+
+const categoryQuestions = createCategoryQuestionBank();
+
+function createCategoryQuestionBank() {
+  const groups = [
+    ['Фрукты', ['яблоко', 'груша', 'банан', 'лимон', 'слива']],
+    ['Овощи', ['морковь', 'капуста', 'огурец', 'помидор', 'свёкла']],
+    ['Одежда', ['пальто', 'рубашка', 'юбка', 'шапка', 'ботинки']],
+    ['Мебель', ['диван', 'кровать', 'стол', 'шкаф', 'кресло']],
+    ['Транспорт', ['автобус', 'поезд', 'трамвай', 'самолёт', 'корабль']],
+    ['Посуда', ['чашка', 'тарелка', 'ложка', 'кастрюля', 'чайник']],
+    ['Птицы', ['синица', 'воробей', 'голубь', 'ласточка', 'соловей']],
+    ['Домашние животные', ['кошка', 'собака', 'корова', 'лошадь', 'кролик']],
+    ['Цветы', ['ромашка', 'тюльпан', 'роза', 'василёк', 'пион']],
+    ['Инструменты', ['молоток', 'пила', 'лопата', 'грабли', 'отвёртка']],
+    ['Деревья', ['берёза', 'дуб', 'сосна', 'клён', 'липа']],
+    ['Части тела', ['рука', 'нога', 'глаз', 'ухо', 'нос']],
+    ['Канцелярия', ['карандаш', 'ручка', 'тетрадь', 'линейка', 'конверт']],
+    ['Бытовая техника', ['холодильник', 'телевизор', 'утюг', 'пылесос', 'стиральная машина']],
+    ['Сладости', ['конфета', 'печенье', 'шоколад', 'зефир', 'пряник']],
+    ['Ягоды', ['малина', 'клубника', 'черника', 'смородина', 'вишня']],
+    ['Рыбы', ['щука', 'окунь', 'карась', 'лещ', 'форель']],
+    ['Профессии', ['врач', 'учитель', 'повар', 'водитель', 'садовник']],
+    ['Времена года', ['весна', 'лето', 'осень', 'зима', 'межсезонье']],
+    ['Геометрические фигуры', ['круг', 'квадрат', 'треугольник', 'овал', 'прямоугольник']]
+  ];
+  return groups.flatMap(([title, words], groupIndex) => words.map((answer, wordIndex) => {
+    const distractors = [1, 7, 13].map(offset => groups[(groupIndex + offset) % groups.length][1][wordIndex]);
+    return { id: `category-${groupIndex + 1}-${wordIndex + 1}`, title, answer, options: [answer, ...distractors] };
+  }));
+}
+
+function createCategoryExercise() {
+  const previousIds = JSON.parse(localStorage.getItem('agiliko-category-previous') || '[]');
+  const available = categoryQuestions.filter(question => !previousIds.includes(question.id));
+  const selected = shuffle(available.length >= TOTAL_QUESTIONS ? available : categoryQuestions).slice(0, TOTAL_QUESTIONS);
+  localStorage.setItem('agiliko-category-previous', JSON.stringify(selected.map(question => question.id)));
+  return selected;
+}
+
+const sequenceQuestions = createSequenceQuestionBank();
+
+function createSequenceQuestionBank() {
+  const questions = [];
+  const addCycle = (items, fallback, count = items.length) => {
+    for (let index = 0; index < count; index += 1) {
+      const answer = items[(index + 3) % items.length];
+      const options = [answer, items[(index + 4) % items.length], items[(index + 5) % items.length], fallback];
+      questions.push({ pattern: `${items[index % items.length]} · ${items[(index + 1) % items.length]} · ${items[(index + 2) % items.length]} · ?`, options: [...new Set(options)], answer });
+    }
+  };
+  const addNumbers = (start, step, count) => {
+    for (let index = 0; index < count; index += 1) {
+      const first = start + index * Math.abs(step) * 4;
+      const answer = first + step * 3;
+      questions.push({ pattern: `${first} · ${first + step} · ${first + step * 2} · ?`, options: shuffle([answer, answer + step, answer - step, answer + step * 2]), answer });
+    }
+  };
+
+  addCycle(['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'], 'Январь');
+  addCycle(['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'], 'Понедельник');
+  addCycle(['Весна', 'Лето', 'Осень', 'Зима'], 'Ночь');
+  addCycle(['Утро', 'День', 'Вечер', 'Ночь'], 'Весна');
+  addNumbers(1, 1, 10);
+  addNumbers(2, 2, 10);
+  addNumbers(1, 2, 10);
+  addNumbers(20, -2, 10);
+  addNumbers(3, 3, 8);
+  addNumbers(5, 5, 8);
+  addCycle(['Круг', 'Квадрат', 'Треугольник'], 'Линия', 8);
+  addCycle(['Красный', 'Жёлтый', 'Зелёный'], 'Синий', 5);
+  addCycle(['Завтрак', 'Обед', 'Ужин', 'Сон'], 'Прогулка', 4);
+
+  return questions.map((question, index) => ({ ...question, id: `sequence-${index + 1}` }));
+}
+
+function createSequenceExercise() {
+  const previousIds = JSON.parse(localStorage.getItem('agiliko-sequence-previous') || '[]');
+  const available = sequenceQuestions.filter(question => !previousIds.includes(question.id));
+  const selected = shuffle(available.length >= TOTAL_QUESTIONS ? available : sequenceQuestions).slice(0, TOTAL_QUESTIONS);
+  localStorage.setItem('agiliko-sequence-previous', JSON.stringify(selected.map(question => question.id)));
+  return selected;
+}
+
+function beginChoiceExercise(kind) {
+  const isCategory = kind === 'category';
+  if (isCategory) { categoryRound = 0; categoryMistakes = 0; categorySequence = createCategoryExercise(); beginSession('Слово по категории'); }
+  else { sequenceRound = 0; sequenceMistakes = 0; sequenceItems = createSequenceExercise(); beginSession('Что дальше?'); }
+  startChoiceRound(kind);
+}
+
+function startChoiceRound(kind) {
+  const isCategory = kind === 'category';
+  activeExercise = kind;
+  if (isCategory) categoryRoundHadMistake = false; else sequenceRoundHadMistake = false;
+  const round = isCategory ? categoryRound : sequenceRound;
+  const errors = isCategory ? categoryMistakes : sequenceMistakes;
+  const question = isCategory ? categorySequence[round] : sequenceItems[round];
+  const prefix = isCategory ? 'category' : 'sequence';
+  activeExerciseTitle.textContent = isCategory ? 'Слово по категории' : 'Что дальше?'; activeExerciseTitle.hidden = false;
+  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = !isCategory; sequenceScreen.hidden = isCategory; mazeScreen.hidden = true; historyScreen.hidden = true;
+  document.querySelector(`#${prefix}-round`).textContent = round + 1;
+  document.querySelector(`#${prefix}-mistakes`).textContent = errors;
+  document.querySelector(`#${prefix}-progress`).style.width = `${(round / TOTAL_QUESTIONS) * 100}%`;
+  document.querySelector(`#${prefix}-title`).textContent = isCategory ? question.title : question.pattern;
+  const list = document.querySelector(`#${prefix}-options`); const message = document.querySelector(`#${prefix}-feedback`);
+  list.innerHTML = ''; list.classList.remove('is-answered'); message.textContent = ''; message.className = 'answer-feedback';
+  shuffle(question.options).forEach(option => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'category-option'; button.textContent = option;
+    button.addEventListener('click', () => chooseChoiceAnswer(kind, button, option)); list.append(button);
+  });
+}
+
+function chooseChoiceAnswer(kind, button, option) {
+  const isCategory = kind === 'category'; const round = isCategory ? categoryRound : sequenceRound;
+  const question = isCategory ? categorySequence[round] : sequenceItems[round]; const prefix = isCategory ? 'category' : 'sequence';
+  const list = document.querySelector(`#${prefix}-options`); const message = document.querySelector(`#${prefix}-feedback`);
+  if (option !== question.answer) {
+    button.disabled = true; button.classList.add('is-wrong');
+    if (isCategory) { categoryMistakes += 1; categoryRoundHadMistake = true; } else { sequenceMistakes += 1; sequenceRoundHadMistake = true; }
+    const errors = isCategory ? categoryMistakes : sequenceMistakes; document.querySelector(`#${prefix}-mistakes`).textContent = errors;
+    message.textContent = 'Пока неверно. Попробуйте ещё раз.'; message.className = 'answer-feedback is-wrong'; updateActiveSession(round, activeSession.successful, errors); return;
+  }
+  list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct');
+  const hadMistake = isCategory ? categoryRoundHadMistake : sequenceRoundHadMistake; const errors = isCategory ? categoryMistakes : sequenceMistakes;
+  message.textContent = 'Верно! Отличная работа.'; message.className = 'answer-feedback is-correct'; document.querySelector(`#${prefix}-progress`).style.width = `${((round + 1) / TOTAL_QUESTIONS) * 100}%`;
+  updateActiveSession(round + 1, activeSession.successful + (hadMistake ? 0 : 1), errors);
+  advanceTimer = window.setTimeout(() => { if (isCategory) categoryRound += 1; else sequenceRound += 1; (isCategory ? categoryRound : sequenceRound) === TOTAL_QUESTIONS ? finishChoiceExercise(kind) : startChoiceRound(kind); }, 1300);
+}
+
+function finishChoiceExercise(kind) {
+  const isCategory = kind === 'category'; const errors = isCategory ? categoryMistakes : sequenceMistakes;
+  categoryScreen.hidden = true; sequenceScreen.hidden = true; result.hidden = false;
+  closeSession('completed', TOTAL_QUESTIONS, activeSession.successful, errors);
+  document.querySelector('#result-title').textContent = errors === 0 ? 'Прекрасно!' : 'Упражнение пройдено!';
+  document.querySelector('#result-description').textContent = isCategory ? 'Вы нашли слова из всех категорий.' : 'Вы продолжили все последовательности.';
+  document.querySelector('#result-correct-number').textContent = TOTAL_QUESTIONS; document.querySelector('#result-mistakes-number').textContent = errors;
+}
+
+document.querySelector('[data-exercise="category"]')?.addEventListener('click', () => beginChoiceExercise('category'));
+document.querySelector('[data-exercise="sequence"]')?.addEventListener('click', () => beginChoiceExercise('sequence'));
+
+const mazeQuestions = Array.from({ length: 100 }, (_, index) => {
+  const correct = (index % 4) + 1;
+  const optionCount = index % 3 === 0 ? Math.max(3, correct) : 4;
+  return { id: `maze-${index + 1}`, correct, optionCount, variant: index % 10 };
+});
+
+function createMazeExercise() {
+  const previousIds = JSON.parse(localStorage.getItem('agiliko-maze-previous') || '[]');
+  const available = mazeQuestions.filter(question => !previousIds.includes(question.id));
+  const selected = shuffle(available.length >= TOTAL_QUESTIONS ? available : mazeQuestions).slice(0, TOTAL_QUESTIONS);
+  localStorage.setItem('agiliko-maze-previous', JSON.stringify(selected.map(question => question.id)));
+  return selected;
+}
+
+function beginMazeExercise() {
+  mazeRound = 0; mazeMistakes = 0; mazeRoundHadMistake = false; mazeItems = createMazeExercise(); beginSession('Дорожка к сыру'); startMazeRound();
+}
+
+function startMazeRound() {
+  activeExercise = 'maze'; mazeRoundHadMistake = false;
+  activeExerciseTitle.textContent = 'Дорожка к сыру'; activeExerciseTitle.hidden = false;
+  home.hidden = true; tip.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = false; historyScreen.hidden = true;
+  const question = mazeItems[mazeRound];
+  document.querySelector('#maze-round').textContent = mazeRound + 1; document.querySelector('#maze-mistakes').textContent = mazeMistakes; document.querySelector('#maze-progress').style.width = `${(mazeRound / TOTAL_QUESTIONS) * 100}%`;
+  renderMaze(question);
+  const list = document.querySelector('#maze-options'); const feedback = document.querySelector('#maze-feedback');
+  list.innerHTML = ''; list.classList.remove('is-answered'); feedback.textContent = ''; feedback.className = 'answer-feedback';
+  shuffle(Array.from({ length: question.optionCount }, (_, index) => index + 1)).forEach(option => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'maze-option'; button.textContent = `Дорожка ${option}`;
+    button.addEventListener('click', () => chooseMazeAnswer(button, option)); list.append(button);
+  });
+}
+
+function renderMaze(question) {
+  const startY = [62, 145, 228, 311];
+  const endY = [58, 132, 278, 352];
+  const routeOrder = [0, 1, 2, 3].map(index => (index + question.variant) % 4);
+  const paths = Array.from({ length: question.optionCount }, (_, index) => {
+    const number = index + 1; const targetY = number === question.correct ? 205 : endY[routeOrder[index]];
+    const firstX = 210 + ((question.variant * 31 + index * 77) % 170);
+    const secondX = 495 + ((question.variant * 43 + index * 59) % 155);
+    const path = `M 92 ${startY[index]} H ${firstX} V ${targetY} H ${secondX} V ${targetY} H ${number === question.correct ? 805 : 735}`;
+    return `<text x="42" y="${startY[index] + 10}" class="maze-number">${number}</text><path class="maze-path" d="${path}"/>`;
+  }).join('');
+  document.querySelector('#maze-board').innerHTML = `<svg viewBox="0 0 920 410" role="img" aria-label="Проследите дорожку от номера до сыра.">${paths}<text x="830" y="228" font-size="70">🧀</text></svg>`;
+}
+
+function chooseMazeAnswer(button, option) {
+  const question = mazeItems[mazeRound]; const list = document.querySelector('#maze-options'); const feedback = document.querySelector('#maze-feedback');
+  if (option !== question.correct) {
+    button.disabled = true; button.classList.add('is-wrong'); mazeMistakes += 1; mazeRoundHadMistake = true; document.querySelector('#maze-mistakes').textContent = mazeMistakes;
+    feedback.textContent = 'Эта дорожка не ведёт к сыру. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong'; updateActiveSession(mazeRound, activeSession.successful, mazeMistakes); return;
+  }
+  list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct');
+  feedback.textContent = 'Верно! Мышка добралась до сыра.'; feedback.className = 'answer-feedback is-correct'; document.querySelector('#maze-progress').style.width = `${((mazeRound + 1) / TOTAL_QUESTIONS) * 100}%`;
+  updateActiveSession(mazeRound + 1, activeSession.successful + (mazeRoundHadMistake ? 0 : 1), mazeMistakes);
+  advanceTimer = window.setTimeout(() => { mazeRound += 1; mazeRound === TOTAL_QUESTIONS ? finishMazeExercise() : startMazeRound(); }, 1400);
+}
+
+function finishMazeExercise() {
+  mazeScreen.hidden = true; result.hidden = false; closeSession('completed', TOTAL_QUESTIONS, activeSession.successful, mazeMistakes);
+  document.querySelector('#result-title').textContent = mazeMistakes === 0 ? 'Прекрасно!' : 'Упражнение пройдено!';
+  document.querySelector('#result-description').textContent = 'Вы нашли дорожки к сыру.';
+  document.querySelector('#result-correct-number').textContent = TOTAL_QUESTIONS; document.querySelector('#result-mistakes-number').textContent = mazeMistakes;
+}
+
+document.querySelector('[data-exercise="maze"]')?.addEventListener('click', beginMazeExercise);
 document.querySelector('#pairs-ready')?.addEventListener('click', beginPairsSearch);
 document.querySelectorAll('[data-exercise]').forEach(button => button.addEventListener('click', () => {
   if (button.dataset.exercise !== 'guess-word') guessWordScreen.hidden = true;
 }));
 document.querySelectorAll('[data-action="home"]').forEach(button => button.addEventListener('click', showHome));
 document.querySelector('[data-action="history"]')?.addEventListener('click', async () => { await abandonActiveSession(); showHistory(); });
-document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'guess-word' ? beginGuessWordExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
+document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'maze' ? beginMazeExercise() : activeExercise === 'category' ? beginChoiceExercise('category') : activeExercise === 'sequence' ? beginChoiceExercise('sequence') : activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'guess-word' ? beginGuessWordExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
