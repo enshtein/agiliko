@@ -98,6 +98,10 @@
           <button class="exercise-card exercise-card--active exercise-card--maze" type="button" data-exercise="maze">
             <span class="card-icon" aria-hidden="true">🐭</span><span class="card-copy"><span class="card-title">Дорожка к сыру</span></span>
           </button>
+
+          <button class="exercise-card exercise-card--active exercise-card--time" type="button" data-exercise="time">
+            <span class="card-icon" aria-hidden="true">🕒</span><span class="card-copy"><span class="card-title">Который час?</span></span>
+          </button>
         </div>
       </section>
 
@@ -234,6 +238,11 @@
       <section class="maze-screen" aria-labelledby="maze-title" hidden>
         <div class="words-topline"><button class="back-button" type="button" data-action="home" aria-label="Вернуться к упражнениям">←</button><div class="progress-track"><span id="maze-progress"></span><b><span id="maze-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="maze-mistakes">0</span></div></div>
         <div class="maze-area"><h1 id="maze-title">Какая дорожка приведёт к сыру?</h1><p class="maze-instruction">Проследите дорожку от номера до сыра и выберите номер.</p><div class="maze-board" id="maze-board" aria-label="Лабиринт с дорожками"></div><div class="maze-options" id="maze-options" aria-label="Номера дорожек"></div><div class="answer-feedback" id="maze-feedback" role="status" aria-live="polite"></div></div>
+      </section>
+
+      <section class="time-screen" aria-labelledby="time-title" hidden>
+        <div class="words-topline"><div class="progress-track"><span id="time-progress"></span><b><span id="time-round">1</span> из 10</b></div><div class="mistakes-count">Ошибок: <span id="time-mistakes">0</span></div></div>
+        <div class="time-area"><h1 id="time-title">Который час?</h1><p class="time-instruction">Выберите часы, которые показывают это время.</p><div class="digital-time" id="digital-time" aria-live="polite"></div><div class="time-options" id="time-options" aria-label="Варианты часов"></div><div class="answer-feedback" id="time-feedback" role="status" aria-live="polite"></div></div>
       </section>
 
       <section class="history-screen" aria-labelledby="history-title" hidden>

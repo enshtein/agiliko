@@ -11,6 +11,7 @@ const oddScreen = document.querySelector('.odd-screen');
 const categoryScreen = document.querySelector('.category-screen');
 const sequenceScreen = document.querySelector('.sequence-screen');
 const mazeScreen = document.querySelector('.maze-screen');
+const timeScreen = document.querySelector('.time-screen');
 const historyScreen = document.querySelector('.history-screen');
 const achievementsScreen = document.querySelector('.achievements-screen');
 const activeExerciseTitle = document.querySelector('#active-exercise-title');
@@ -72,6 +73,7 @@ let pairsRoundHadMistake = false;
 let categoryRound = 0, categoryMistakes = 0, categorySequence = [], categoryRoundHadMistake = false;
 let sequenceRound = 0, sequenceMistakes = 0, sequenceItems = [], sequenceRoundHadMistake = false;
 let mazeRound = 0, mazeMistakes = 0, mazeItems = [], mazeRoundHadMistake = false;
+let timeRound = 0, timeMistakes = 0, timeItems = [], timeRoundHadMistake = false;
 
 const medals = [
   [50, 'Первый шаг', '🌱'], [100, 'Добрый старт', '⭐'], [150, 'Внимательный', '🔎'], [200, 'Уверенный', '🏅'],
@@ -176,7 +178,7 @@ function showAchievements() {
   isAchievementsView = true;
   activeExerciseTitle.textContent = 'Ваши награды';
   activeExerciseTitle.hidden = false;
-  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; timeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = false;
   document.querySelector('.topbar').classList.add('is-achievements');
   renderAchievementSummary();
   const grid = document.querySelector('#medals-grid');
@@ -194,6 +196,7 @@ const topbarProgressSources = {
   letters: ['#letters-round', '#letters-mistakes', '#letters-progress'], 'guess-word': ['#guess-word-round', '#guess-word-mistakes', '#guess-word-progress'],
   pairs: ['#pairs-round', '#pairs-mistakes', '#pairs-progress'], odd: ['#odd-round', '#odd-mistakes', '#odd-progress'],
   category: ['#category-round', '#category-mistakes', '#category-progress'], sequence: ['#sequence-round', '#sequence-mistakes', '#sequence-progress'], maze: ['#maze-round', '#maze-mistakes', '#maze-progress']
+  , time: ['#time-round', '#time-mistakes', '#time-progress']
 };
 
 function syncExerciseTopbar() {
@@ -255,8 +258,8 @@ function closeSession(status, completed, successful, mistakes) {
 
 function abandonActiveSession() {
   if (!activeSession) return;
-  const progress = activeExercise === 'maze' ? mazeRound : activeExercise === 'category' ? categoryRound : activeExercise === 'sequence' ? sequenceRound : activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'guess-word' ? guessWordRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
-  const errors = activeExercise === 'maze' ? mazeMistakes : activeExercise === 'category' ? categoryMistakes : activeExercise === 'sequence' ? sequenceMistakes : activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'guess-word' ? guessWordMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
+  const progress = activeExercise === 'time' ? timeRound : activeExercise === 'maze' ? mazeRound : activeExercise === 'category' ? categoryRound : activeExercise === 'sequence' ? sequenceRound : activeExercise === 'odd' ? oddRound : activeExercise === 'memory' ? memoryRound : activeExercise === 'words' ? wordsRound : activeExercise === 'change' ? changeRound : activeExercise === 'letters' ? lettersRound : activeExercise === 'guess-word' ? guessWordRound : activeExercise === 'pairs' ? pairsRound : currentQuestion;
+  const errors = activeExercise === 'time' ? timeMistakes : activeExercise === 'maze' ? mazeMistakes : activeExercise === 'category' ? categoryMistakes : activeExercise === 'sequence' ? sequenceMistakes : activeExercise === 'odd' ? oddMistakes : activeExercise === 'memory' ? memoryMistakes : activeExercise === 'words' ? wordsMistakes : activeExercise === 'change' ? changeMistakes : activeExercise === 'letters' ? lettersMistakes : activeExercise === 'guess-word' ? guessWordMistakes : activeExercise === 'pairs' ? pairsMistakes : mistakes;
   return closeSession('abandoned', progress, activeSession.successful, errors);
 }
 
@@ -265,7 +268,7 @@ async function showHistory() {
   isAchievementsView = false;
   document.querySelector('.topbar').classList.remove('is-achievements');
   activeExerciseTitle.hidden = true;
-  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; achievementsScreen.hidden = true; historyScreen.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; timeScreen.hidden = true; achievementsScreen.hidden = true; historyScreen.hidden = false;
   homeScore.hidden = true; document.querySelector('.profile-button').hidden = true;
   await sessionWriteQueue;
   const db = await historyDatabase;
@@ -372,7 +375,7 @@ function showHome() {
   isAchievementsView = false;
   document.querySelector('.topbar').classList.remove('is-achievements');
   activeExerciseTitle.hidden = true;
-  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = true; home.hidden = false;
+  game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; timeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = true; home.hidden = false;
   homeScore.hidden = false; document.querySelector('.profile-button').hidden = false; renderAchievementSummary();
 }
 
@@ -1211,6 +1214,89 @@ function finishMazeExercise() {
 }
 
 document.querySelector('[data-exercise="maze"]')?.addEventListener('click', beginMazeExercise);
+
+const timeQuestions = Array.from({ length: 120 }, (_, index) => {
+  const hour = (index % 12) + 1;
+  const minute = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55][Math.floor(index / 12)];
+  return { id: `${hour}-${minute}`, hour, minute };
+});
+
+function createTimeExercise() {
+  const previousIds = JSON.parse(localStorage.getItem('agiliko-time-previous') || '[]');
+  const available = timeQuestions.filter(question => !previousIds.includes(question.id));
+  const selected = shuffle(available.length >= TOTAL_QUESTIONS ? available : timeQuestions).slice(0, TOTAL_QUESTIONS);
+  localStorage.setItem('agiliko-time-previous', JSON.stringify(selected.map(question => question.id)));
+  return selected;
+}
+
+function createTimeOptions(question) {
+  const nearby = [
+    { hour: question.hour % 12 + 1, minute: question.minute },
+    { hour: (question.hour + 10) % 12 + 1, minute: question.minute },
+    { hour: question.hour, minute: (question.minute + 15) % 60 },
+    { hour: question.hour, minute: (question.minute + 45) % 60 }
+  ];
+  const options = [{ ...question }, ...nearby];
+  const unique = options.filter((option, index, list) => list.findIndex(item => item.hour === option.hour && item.minute === option.minute) === index);
+  while (unique.length < 3) {
+    const extra = shuffle(timeQuestions.filter(item => item.id !== question.id && !unique.some(option => option.hour === item.hour && option.minute === item.minute)))[0];
+    unique.push(extra);
+  }
+  return shuffle(unique.slice(0, 3));
+}
+
+function clockSvg(hour, minute) {
+  const point = (angle, length) => {
+    const radians = (angle - 90) * Math.PI / 180;
+    return [150 + Math.cos(radians) * length, 150 + Math.sin(radians) * length];
+  };
+  const minuteHand = point(minute * 6, 88); const hourHand = point((hour % 12) * 30 + minute * .5, 59);
+  const ticks = Array.from({ length: 12 }, (_, index) => {
+    const [x1, y1] = point(index * 30, 112); const [x2, y2] = point(index * 30, 100);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+  }).join('');
+  return `<svg viewBox="0 0 300 300" aria-hidden="true"><circle cx="150" cy="150" r="128" class="clock-face"/><g class="clock-ticks">${ticks}</g><text x="150" y="76">12</text><text x="224" y="158">3</text><text x="150" y="224">6</text><text x="76" y="158">9</text><line x1="150" y1="150" x2="${hourHand[0]}" y2="${hourHand[1]}" class="clock-hour"/><line x1="150" y1="150" x2="${minuteHand[0]}" y2="${minuteHand[1]}" class="clock-minute"/><circle cx="150" cy="150" r="9" class="clock-center"/></svg>`;
+}
+
+function beginTimeExercise() {
+  timeRound = 0; timeMistakes = 0; timeRoundHadMistake = false; timeItems = createTimeExercise(); beginSession('Который час?'); startTimeRound();
+}
+
+function startTimeRound() {
+  activeExercise = 'time'; timeRoundHadMistake = false;
+  activeExerciseTitle.textContent = 'Который час?'; activeExerciseTitle.hidden = false;
+  home.hidden = true; game.hidden = true; result.hidden = true; memoryScreen.hidden = true; wordsScreen.hidden = true; changeScreen.hidden = true; lettersScreen.hidden = true; guessWordScreen.hidden = true; pairsScreen.hidden = true; oddScreen.hidden = true; categoryScreen.hidden = true; sequenceScreen.hidden = true; mazeScreen.hidden = true; historyScreen.hidden = true; achievementsScreen.hidden = true; timeScreen.hidden = false;
+  const question = timeItems[timeRound];
+  document.querySelector('#time-round').textContent = timeRound + 1; document.querySelector('#time-mistakes').textContent = timeMistakes; document.querySelector('#time-progress').style.width = `${(timeRound / TOTAL_QUESTIONS) * 100}%`;
+  document.querySelector('#digital-time').textContent = `${String(question.hour).padStart(2, '0')}:${String(question.minute).padStart(2, '0')}`;
+  const list = document.querySelector('#time-options'); const feedback = document.querySelector('#time-feedback');
+  list.innerHTML = ''; list.classList.remove('is-answered'); feedback.textContent = ''; feedback.className = 'answer-feedback';
+  createTimeOptions(question).forEach(option => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'clock-option'; button.innerHTML = clockSvg(option.hour, option.minute); button.setAttribute('aria-label', `Часы показывают ${String(option.hour).padStart(2, '0')}:${String(option.minute).padStart(2, '0')}`);
+    button.addEventListener('click', () => chooseTimeAnswer(button, option)); list.append(button);
+  });
+}
+
+function chooseTimeAnswer(button, option) {
+  const question = timeItems[timeRound]; const list = document.querySelector('#time-options'); const feedback = document.querySelector('#time-feedback');
+  if (option.hour !== question.hour || option.minute !== question.minute) {
+    button.disabled = true; button.classList.add('is-wrong'); timeMistakes += 1; timeRoundHadMistake = true; recordAchievement(false);
+    document.querySelector('#time-mistakes').textContent = timeMistakes; feedback.textContent = 'Эти часы показывают другое время. Попробуйте ещё раз.'; feedback.className = 'answer-feedback is-wrong'; updateActiveSession(timeRound, activeSession.successful, timeMistakes); return;
+  }
+  list.querySelectorAll('button').forEach(item => item.disabled = true); list.classList.add('is-answered'); button.classList.add('is-correct'); recordRoundResult(timeRoundHadMistake);
+  feedback.textContent = 'Верно! Отличная работа.'; feedback.className = 'answer-feedback is-correct'; document.querySelector('#time-progress').style.width = `${((timeRound + 1) / TOTAL_QUESTIONS) * 100}%`;
+  updateActiveSession(timeRound + 1, activeSession.successful + (timeRoundHadMistake ? 0 : 1), timeMistakes);
+  advanceTimer = window.setTimeout(() => { timeRound += 1; timeRound === TOTAL_QUESTIONS ? finishTimeExercise() : startTimeRound(); }, 1300);
+}
+
+function finishTimeExercise() {
+  timeScreen.hidden = true; result.hidden = false; closeSession('completed', TOTAL_QUESTIONS, activeSession.successful, timeMistakes);
+  document.querySelector('#result-title').textContent = timeMistakes === 0 ? 'Прекрасно!' : 'Упражнение пройдено!';
+  document.querySelector('#result-description').textContent = 'Вы определили время на часах.';
+  document.querySelector('#result-correct-number').textContent = TOTAL_QUESTIONS; document.querySelector('#result-mistakes-number').textContent = timeMistakes;
+}
+
+document.querySelector('[data-exercise="time"]')?.addEventListener('click', beginTimeExercise);
 document.querySelector('#pairs-ready')?.addEventListener('click', beginPairsSearch);
 document.querySelectorAll('[data-exercise]').forEach(button => button.addEventListener('click', () => {
   if (button.dataset.exercise !== 'guess-word') guessWordScreen.hidden = true;
@@ -1219,7 +1305,7 @@ document.querySelectorAll('[data-action="home"]').forEach(button => button.addEv
 document.querySelector('[data-action="history"]')?.addEventListener('click', async () => { await abandonActiveSession(); showHistory(); });
 homeScore?.addEventListener('click', showAchievements);
 document.addEventListener('pointerdown', prepareSound, { once: true });
-document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'maze' ? beginMazeExercise() : activeExercise === 'category' ? beginChoiceExercise('category') : activeExercise === 'sequence' ? beginChoiceExercise('sequence') : activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'guess-word' ? beginGuessWordExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
+document.querySelector('[data-action="restart"]')?.addEventListener('click', () => activeExercise === 'time' ? beginTimeExercise() : activeExercise === 'maze' ? beginMazeExercise() : activeExercise === 'category' ? beginChoiceExercise('category') : activeExercise === 'sequence' ? beginChoiceExercise('sequence') : activeExercise === 'odd' ? beginOddExercise() : activeExercise === 'memory' ? beginMemoryExercise() : activeExercise === 'words' ? beginWordsExercise() : activeExercise === 'change' ? beginChangeExercise() : activeExercise === 'letters' ? beginLettersExercise() : activeExercise === 'guess-word' ? beginGuessWordExercise() : activeExercise === 'pairs' ? beginPairsExercise() : startExercise());
 
 const topbarObserver = new MutationObserver(syncExerciseTopbar);
 topbarObserver.observe(activeExerciseTitle, { attributes: true, attributeFilter: ['hidden'] });
